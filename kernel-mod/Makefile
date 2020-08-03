@@ -1,3 +1,5 @@
+# this builds "hello-world-nl.ko" from "hello-world-nl.c"
+# that's the way to build linux kernel modules
 obj-m = hello-world-nl.o 
 
 all:

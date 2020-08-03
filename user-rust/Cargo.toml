@@ -1,0 +1,11 @@
+[package]
+name = "user-rust"
+version = "0.1.0"
+authors = ["Philipp Schuster <phip1611@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# neli = "0.5.0-rc1" theres a bug; ack seq number is 0 when using 0.5.0 when invocing resolve_genl_family()
+neli = "0.4.3"

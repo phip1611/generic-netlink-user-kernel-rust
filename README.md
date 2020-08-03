@@ -41,8 +41,6 @@ Sending 'Hello from userland (Rust)' via netlink
 Hello World from kernel space
 
 c user programm:
-rm -rf user
-gcc -Wall -Werror -o user user.c
 extracted family id is: 32
 Sent to kernel: Hello World from C user program!
 Kernel replied: Hello World from kernel space

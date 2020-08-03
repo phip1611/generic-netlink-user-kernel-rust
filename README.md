@@ -14,8 +14,9 @@ This repository consists of:
 
 The userland program in C is just for comparision. The work for the linux kernel part and the userland
 program in C was originally published here: http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html
-I don't know the name of the author but I want to give a big shoutout to him/her!
-**The user program (C) is the same but the linux code was adjusted to work with Linux 5.4 (5.x)!**
+
+I don't know the author but from the comments I guess the author is *Anurag Chugh* ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)). I want to give a big shoutout to him! 
+**The user program (C) here is the same as in the link but the linux code was adjusted to work with Linux 5.4 (5.x)!**
 
 ## What it does
 - the linux kernel module supports a single operation: receives a string, prints it to kernel log and send a string back

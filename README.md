@@ -1,7 +1,7 @@
 # Generic netlink message transfer between Linux kernel module and user programm (written in Rust)
 
 This is a stripped down example how to use the generic protocol inside the netlink protocol to 
-pass data between userland (written in Rust) and Linux kernel module (written in C).
+pass data between userland (written in Rust) and Linux kernel (5.x) module (written in C).
 
 I had to figure this out for an uni project and it was quite tough. So I'd like to share my findings
 with the open source world!
@@ -34,7 +34,7 @@ quite tough. My understanding isn't perfect either. But my findings are:
 ## How to run
 - `$ sudo apt install build-essential linux-headers-$(uname -r)` 
 - make sure rustup/cargo is installed
-- `$ sh ./build_and_run`
+- `$ sh ./build_and_run.sh`
 ```
 rust user programm:
 Generic family number is 32

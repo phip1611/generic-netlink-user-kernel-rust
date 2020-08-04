@@ -68,10 +68,12 @@ fn main() {
     socket.send_nl(nl_msh).unwrap();
 
     // ----------------------------------------
-    // Receive data
-    let foo = socket.recv_nl::<u16, Genlmsghdr::<Command, ControlAttr>>(None).unwrap();
+    // Receive data;
+    // u16 is the family id; theoretically we could assert that
+    // res.nl_type == family_id
+    let res = socket.recv_nl::<u16, Genlmsghdr::<Command, ControlAttr>>(None).unwrap();
     // iterate through all received attributes
-    foo.nl_payload.get_attr_handle().iter().for_each(|attr| {
+    res.nl_payload.get_attr_handle().iter().for_each(|attr| {
         match attr.nla_type {
            ControlAttr::Msg => {
                 println!("{}", String::from_utf8(attr.payload.clone()).unwrap());

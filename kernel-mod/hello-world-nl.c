@@ -25,7 +25,9 @@ static struct nla_policy doc_exmpl_genl_policy[DOC_EXMPL_A_MAX + 1] = {
 };
 
 /* commands: enumeration of all commands (functions), 
- * used by userspace application to identify command to be executed
+ * used by userspace application to identify command to be executed.
+ * This can be understood as our own protocol on top of generic netlink
+ * on top of netlink.
  */
 enum Commands {
     DOC_EXMPL_C_UNSPEC, // looks like the 0 entry must always be unused; first real command starts at 1

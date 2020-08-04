@@ -37,9 +37,9 @@ enum Commands {
 // callback function for echo command
 int doc_exmpl_echo(struct sk_buff *, struct genl_info *);
 
-// Array with all operations that we support
-// An operation is the clue between a command and the
-// callback function
+// Array with all operations that out protocol on top of generic netlink
+// supports. An operation is the glue between a command (number) and the
+// corresponding callback function.
 struct genl_ops ops[__DOC_EXMPL_C_MAX] = {
     {
         .cmd = DOC_EXMPL_C_ECHO,
@@ -49,13 +49,12 @@ struct genl_ops ops[__DOC_EXMPL_C_MAX] = {
     }
 };
 
-#define VERSION_NR 1
 //family definition
 static struct genl_family doc_exmpl_gnl_family = {
     .id = 0, // automatically assign an id
     .hdrsize = 0, // we don't use custom additional header info
     .name = "CONTROL_EXMPL", // The name of this family, used by userspace application
-    .version = VERSION_NR,   // family specific version number
+    .version = 1,   // family specific version number
     .maxattr = DOC_EXMPL_A_MAX, // should also be the bounds check for policy
     .ops = ops, // delegates all incoming requests to callback functions
     .n_ops = DOC_EXMPL_C_MAX,
@@ -63,7 +62,7 @@ static struct genl_family doc_exmpl_gnl_family = {
     .module = THIS_MODULE,
 };
 
-//An echo command, receives a message, prints it and sends another message back
+// An echo command, receives a message, prints it and sends another message back
 int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
 {    
     printk(KERN_INFO "hello-world-nl: doc_exmpl_echo() invoked\n");
@@ -94,15 +93,15 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
         printk(KERN_INFO "no info->attrs %i\n", DOC_EXMPL_A_MSG);
     }
 
-    //Send a message back
-    //Allocate some memory, since the size is not yet known use NLMSG_GOODSIZE
+    // Send a message back
+    // Allocate some memory, since the size is not yet known use NLMSG_GOODSIZE
     skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
     if (skb == NULL) {
         printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
         return -1;
     }
 
-    //Create the message headers
+    // Create the message headers
     /* arguments of genlmsg_put: 
        struct sk_buff *, 
        int (sending) pid, 
@@ -111,14 +110,17 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
        int flags, 
        u8 command index (why do we need this?)
     */
-    //msg_head = genlmsg_put(skb, 0, info->snd_seq + 1, &doc_exmpl_gnl_family, 0, DOC_EXMPL_C_ECHO);
+    // msg_head = genlmsg_put(skb, 0, info->snd_seq + 1, &doc_exmpl_gnl_family, 0, DOC_EXMPL_C_ECHO);
+    // I thought that (sending) pid must be 0 (the kernel) but this breaks "neli" Rust lib with 
+    // "BadPid" error. I don't know which side is wrong and which follows the standard. We don't have 
+    // any disadvantage in our case if we just set the pid (snd_portid seems to be pid) of the user program.
     msg_head = genlmsg_put(skb, info->snd_portid, info->snd_seq + 1, &doc_exmpl_gnl_family, 0, DOC_EXMPL_C_ECHO);
     if (msg_head == NULL) {
         rc = ENOMEM;
         printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
         return -rc;
     }
-    //Add a DOC_EXMPL_A_MSG attribute (actual value to be sent)
+    // Add a DOC_EXMPL_A_MSG attribute (actual value to be sent)
     rc = nla_put_string(skb, DOC_EXMPL_A_MSG, "Hello World from kernel space");
     if (rc != 0)
     {
@@ -126,10 +128,10 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
         return -rc;
     }
 
-    //Finalize the message
+    // Finalize the message
     genlmsg_end(skb, msg_head);
 
-    //Send the message back
+    // Send the message back
     rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
     if (rc != 0) {
         printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
@@ -159,7 +161,7 @@ static void __exit hw_nl_exit(void)
     printk(KERN_INFO "Generic Netlink Example Module unloaded.\n");
 
 
-    //Unregister the family
+    // Unregister the family
     ret = genl_unregister_family(&doc_exmpl_gnl_family);
     if (ret != 0) {
         printk(KERN_INFO "Unregister family %i\n", ret);

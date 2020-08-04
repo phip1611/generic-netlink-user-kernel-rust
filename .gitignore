@@ -16,3 +16,6 @@
 ### VisualStudioCode ###
 .vscode/*
 
+### IntelliJ / CLion
+.idea
+*.iml

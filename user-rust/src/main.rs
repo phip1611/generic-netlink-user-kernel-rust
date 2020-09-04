@@ -43,8 +43,6 @@ impl_var_trait!(
 
 fn main() {
     let mut socket = socket::NlSocket::connect(NlFamily::Generic, None, None, true).unwrap();
-    // Please note that "neli" hangs in an endless loop when the family doesn't exist as of version
-    // 0.4.3. Wait until https://github.com/jbaublitz/neli/issues/87 gets resolved!
     let family_id = socket.resolve_genl_family("CONTROL_EXMPL").expect("Generic Family must exist!");
     println!("Generic family number is {}", family_id);
 

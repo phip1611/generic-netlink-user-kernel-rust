@@ -19,19 +19,13 @@
 // 2) client sends data to retrieved family id.
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
-#include <poll.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <signal.h>
 
 #include <linux/genetlink.h>
+
+#define FAMILY_NAME "CONTROL_EXMPL"
 
 // Generic macros for dealing with netlink sockets
 #define GENLMSG_DATA(glh) ((void *)(NLMSG_DATA(glh) + GENL_HDRLEN))
@@ -94,8 +88,8 @@ int main(void)
     //Populate the payload's "netlink attributes"
     nl_na = (struct nlattr *)GENLMSG_DATA(&nl_request_msg);
     nl_na->nla_type = CTRL_ATTR_FAMILY_NAME;
-    nl_na->nla_len = strlen("CONTROL_EXMPL") + 1 + NLA_HDRLEN;
-    strcpy(NLA_DATA(nl_na), "CONTROL_EXMPL"); //Family name length can be upto 16 chars including \0
+    nl_na->nla_len = strlen(FAMILY_NAME) + 1 + NLA_HDRLEN;
+    strcpy(NLA_DATA(nl_na), FAMILY_NAME); //Family name length can be upto 16 chars including \0
 
     nl_request_msg.n.nlmsg_len += NLMSG_ALIGN(nl_na->nla_len);
 

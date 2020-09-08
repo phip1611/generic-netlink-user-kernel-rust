@@ -29,14 +29,14 @@
 // on top of generic netlink (like functions we want to trigger on the receiving side)
 #include "exmpl-protocol-nl.h"
 
-#define FAMILY_NAME "CONTROL_EXMPL"
+
 
 // Generic macros for dealing with netlink sockets
 #define GENLMSG_DATA(glh) ((void *)(NLMSG_DATA(glh) + GENL_HDRLEN))
 #define GENLMSG_PAYLOAD(glh) (NLMSG_PAYLOAD(glh, 0) - GENL_HDRLEN)
 #define NLA_DATA(na) ((void *)((char *)(na) + NLA_HDRLEN))
 
-#define MESSAGE_TO_KERNEL "Hello World from C user program!"
+#define MESSAGE_TO_KERNEL "Hello World from C user program (using raw sockets)!"
 
 //Variables used for netlink
 int nl_fd;                     //netlink socket's file descriptor

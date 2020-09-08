@@ -27,8 +27,6 @@
 // on top of generic netlink (like functions we want to trigger on the receiving side)
 #include "exmpl-protocol-nl.h"
 
-#define FAMILY_NAME "CONTROL_EXMPL"
-
 int main(void) {
     int res;
 

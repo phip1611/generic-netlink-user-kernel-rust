@@ -1,5 +1,7 @@
 #pragma once
 
+#define FAMILY_NAME "CONTROL_EXMPL"
+
 // Describes common properties/vars/enums of our own protocol
 // that sends and receives data on top of generic netlink.
 

@@ -1,11 +1,12 @@
 # clear kernel log
+sudo rmmod hello-world-nl
 sudo dmesg -c > /dev/null
 
 cd kernel-mod
 make clean
 make
-sudo rmmod hello-world-nl
 sudo insmod hello-world-nl.ko
+echo "inserted hello-world-nl.ko"
 cd ..
 
 # rust user program:
@@ -20,10 +21,13 @@ cd ..
 # should communicate with kernel module via netlink 
 cd user-c
 echo
-echo "c user programm:"
 make clean
 make
-./user
+
+echo "c user programm (using raw sockets):"
+./user-pure
+echo "c user programm (using libnl):"
+./user-libnl
 cd ..
 
 echo

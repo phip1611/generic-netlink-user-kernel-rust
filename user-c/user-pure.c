@@ -25,6 +25,10 @@
 
 #include <linux/genetlink.h>
 
+// data/vars/enums/properties that describes our protocol that we implement
+// on top of generic netlink (like functions we want to trigger on the receiving side)
+#include "exmpl-protocol-nl.h"
+
 #define FAMILY_NAME "CONTROL_EXMPL"
 
 // Generic macros for dealing with netlink sockets
@@ -141,12 +145,12 @@ int main(void)
     nl_request_msg.n.nlmsg_len = NLMSG_LENGTH(GENL_HDRLEN);
     nl_request_msg.n.nlmsg_type = nl_family_id;
     nl_request_msg.n.nlmsg_flags = NLM_F_REQUEST;
-    nl_request_msg.n.nlmsg_seq = 60;
+    nl_request_msg.n.nlmsg_seq = 0;
     nl_request_msg.n.nlmsg_pid = getpid();
-    nl_request_msg.g.cmd = 1; //corresponds to DOC_EXMPL_C_ECHO;
+    nl_request_msg.g.cmd = EXMPL_C_ECHO;
 
     nl_na = (struct nlattr *)GENLMSG_DATA(&nl_request_msg);
-    nl_na->nla_type = 1;                                     // corresponds to DOC_EXMPL_A_MSG
+    nl_na->nla_type = EXMPL_A_MSG;
     nl_na->nla_len = sizeof(MESSAGE_TO_KERNEL) + NLA_HDRLEN; //Message length
     memcpy(NLA_DATA(nl_na), MESSAGE_TO_KERNEL, sizeof(MESSAGE_TO_KERNEL));
     nl_request_msg.n.nlmsg_len += NLMSG_ALIGN(nl_na->nla_len);

@@ -50,8 +50,8 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     struct nlattr *na;
     struct sk_buff *skb;
     int rc;
-    void *msg_head;
-    char *mydata;
+    void * msg_head;
+    char * recv_msg;
 
     printk(KERN_INFO "hello-world-nl: doc_exmpl_echo() invoked\n");
 
@@ -65,15 +65,16 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
      */
     na = info->attrs[EXMPL_A_MSG];
     if (na) {
-        mydata = (char *)nla_data(na);
-        if (mydata == NULL) {
+        recv_msg = (char *)nla_data(na);
+        if (recv_msg == NULL) {
             printk(KERN_INFO "error while receiving data\n");
         }
         else {
-            printk(KERN_INFO "received: %s\n", mydata);
+            printk(KERN_INFO "received: %s\n", recv_msg);
         }
     } else {
         printk(KERN_INFO "no info->attrs %i\n", EXMPL_A_MSG);
+        return -1; // we return here because we expect to recv a msg
     }
 
     // Send a message back
@@ -104,7 +105,8 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
         return -rc;
     }
     // Add a EXMPL_A_MSG attribute (actual value to be sent)
-    rc = nla_put_string(skb, EXMPL_A_MSG, "Hello World from kernel space");
+    // just echo the value just received
+    rc = nla_put_string(skb, EXMPL_A_MSG, recv_msg);
     if (rc != 0)
     {
         printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");

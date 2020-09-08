@@ -24,12 +24,19 @@ echo
 make clean
 make
 
+echo
+echo
+echo
 echo "c user programm (using raw sockets):"
 ./user-pure
+echo
+echo
 echo "c user programm (using libnl):"
 ./user-libnl
 cd ..
 
+echo
+echo
 echo
 echo "output of kernel log:"
 sudo dmesg

@@ -33,11 +33,22 @@ I don't know the author but from the comments I guess the author is *Anurag Chug
 ## How does generic netlink work?
 Although netlinks is one of the nicer interfaces for communicating between user and kernel in Linux it's still
 quite tough. My understanding isn't perfect either. But my findings are:
-1) linux kernel module registers a new family using generic netlink protocol:
-   a new family number is temporarily assigned (additional to the families [here](https://github.com/torvalds/linux/blob/master/include/uapi/linux/netlink.h))
-2) user program asks for the family number of %FAMILY_NAME% using generic netlink (handled by netlink manager inside Linux);
+1) Linux offers Netlink as IPC interface between userland and kernel
+   (I think Linux has some kind of netlink router internally that does all the magic)
+2) Generic Netlink consists of two fundamental parts:
+   
+   2.a) a specification for the payload ("generic netlink header")
+   
+   2.b) a netlink family that is reachable through ID NETLINK_GENERIC (enum value for 16)
+
+3) "NETLINK_GENERIC" is used to register new families and receive the numeric ids of families by their name
+4) linux kernel module can register a new family which creates new family id/number temporarily
+   (additional to the families [here](https://github.com/torvalds/linux/blob/master/include/uapi/linux/netlink.h))
+5) user program asks for the family number of %FAMILY_NAME% using generic netlink (handled by netlink manager inside Linux);
    receives number
-3) the user program uses the family number and sends generic netlink messages to this number and receives data
+6) the user program uses the family number and sends generic netlink messages (see 2. a.) to this number and receives data.
+   The data we send though the new family can be understood as our own simple protocol with attributes and operations
+   (to be invoked on receiver side)
 
 ## How to run
 - `$ sudo apt install build-essential linux-headers-$(uname -r) libnl-3 libnl-genl-3` 
@@ -45,19 +56,29 @@ quite tough. My understanding isn't perfect either. But my findings are:
 - `$ sh ./build_and_run.sh`
 ```
 rust user programm:
-Generic family number is 32
+Generic family number is 38
 Sending 'Hello from userland (Rust)' via netlink
-Hello World from kernel space
+Hello from userland (Rust)
 
-c user programm:
-extracted family id is: 32
-Sent to kernel: Hello World from C user program!
-Kernel replied: Hello World from kernel space
+
+c user programm (using raw sockets):
+extracted family id is: 38
+Sent to kernel: Hello World from C user program (using raw sockets)!
+Kernel replied: Hello World from C user program (using raw sockets)!
+
+
+c user programm (using libnl):
+Family-ID of generic netlink family 'CONTROL_EXMPL' is: 38
+Sent to kernel: Hello World from Userland with libnl & libnl-genl
+Kernel replied: Hello World from Userland with libnl & libnl-genl
+
 
 output of kernel log:
-[ 1528.389775] Generic Netlink Example Module inserted.
-[ 1528.421753] hello-world-nl: doc_exmpl_echo() invoked
-[ 1528.421756] received: Hello from userland (Rust)
-[ 1528.489141] hello-world-nl: doc_exmpl_echo() invoked
-[ 1528.489142] received: Hello World from C user program!
+[41545.749516] Generic Netlink Example Module inserted.
+[41545.893320] hello-world-nl: doc_exmpl_echo() invoked
+[41545.893322] received: Hello from userland (Rust)
+[41546.605702] hello-world-nl: doc_exmpl_echo() invoked
+[41546.605703] received: Hello World from C user program (using raw sockets)!
+[41546.606455] hello-world-nl: doc_exmpl_echo() invoked
+[41546.606456] received: Hello World from Userland with libnl & libnl-genl
 ```

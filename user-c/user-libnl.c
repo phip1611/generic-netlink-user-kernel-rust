@@ -14,15 +14,24 @@
 
 #include <stdio.h>
 
+#include <netlink/attr.h>
 // "libnl" (core)
 #include <netlink/netlink.h>
 // "libnl-genl" (genl extension on top of core)
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h> // for genl_ctrl_ functions
+// if we want to use functions flags like "NLM_F_ACK"
+#include <linux/netlink.h>
+
+// data/vars/enums/properties that describes our protocol that we implement
+// on top of generic netlink (like functions we want to trigger on the receiving side)
+#include "exmpl-protocol-nl.h"
 
 #define FAMILY_NAME "CONTROL_EXMPL"
 
 int main(void) {
+    int res;
+
     // Allocate new netlink socket in memory.
     struct nl_sock * socket = nl_socket_alloc();
 
@@ -34,7 +43,7 @@ int main(void) {
     int family_id = genl_ctrl_resolve(socket, FAMILY_NAME);
 
     if (family_id < 0) {
-        printf("generic netlink family '" FAMILY_NAME "' NOT REGISTERED\n");
+        fprintf(stderr, "generic netlink family '" FAMILY_NAME "' NOT REGISTERED\n");
         nl_socket_free(socket);
         exit(-1);
     } else {
@@ -48,12 +57,30 @@ int main(void) {
     // it's payload is the generic netlink header with its data
     // nl message with default size
     struct nl_msg * msg = nlmsg_alloc();
-    /*void * user_hdr = genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family_id,
-                           sizeof(struct my_hdr), 0, 1, 0);
-    if (!user_hdr)
-        // ERROR
-*/
-    nlmsg_free(msg);
+    genlmsg_put(
+            msg,  // nl msg
+            NL_AUTO_PORT, // auto assign current pid
+            NL_AUTO_SEQ, // begin wit hseq number 0
+            family_id, // family id
+            0, // no additional user header
+            // flags; my example doesn't use this flags; kernel module ignores them whn
+            // parsing the message; it's just here to show you how it would work
+            NLM_F_ACK | NLM_F_ECHO,
+            1, // the command
+            0
+    );
+
+    NLA_PUT_STRING(msg, EXMPL_A_MSG, "Hello World from Userland with libnl & libnl-genl");
+    res = nl_send_auto_complete(socket, msg);
+    //nlmsg_free(msg); already done by nl_send_auto_complete
+    if (res < 0) {
+        fprintf(stderr, "sending message failed\n");
+    }
 
     nl_socket_free(socket);
+    return 0;
+
+nla_put_failure: // referenced by NLA_PUT_STRING
+    nlmsg_free(msg);
+    return -1;
 }

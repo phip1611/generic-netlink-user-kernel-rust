@@ -121,8 +121,9 @@ int main(void) {
             // flags; my example doesn't use this flags; kernel module ignores them whn
             // parsing the message; it's just here to show you how it would work
             NLM_F_ACK | NLM_F_ECHO,
-            1, // the command
-            0
+            EXMPL_C_ECHO, // the command we want to trigger on the receiving side
+            0 // Interface version (I don't know why this is useful; perhaps receiving side can adjust actions if
+            // functionality evolves during development and multiple releases)
     );
 
     NLA_PUT_STRING(msg, EXMPL_A_MSG, MESSAGE_TO_KERNEL);

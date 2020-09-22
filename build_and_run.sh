@@ -1,12 +1,5 @@
-# clear kernel log
-sudo rmmod generic-netlink-demo-km
-sudo dmesg -c > /dev/null
-
 cd kernel-mod
-make clean
-make
-sudo insmod generic-netlink-demo-km.ko
-echo "inserted generic-netlink-demo-km.ko"
+sh build_and_insert_km.sh
 cd ..
 
 # rust user program:

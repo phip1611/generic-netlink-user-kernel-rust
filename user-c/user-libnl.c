@@ -42,9 +42,10 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
     // (we can only send an specific attribute once per msg)
     struct nlattr * tb_msg[EXMPL_A_MAX + 1];
 
-    // just to be sure: check if msg was received from right family id
-    // (I don't know why this should fail here)
-    if (ret_hdr->nlmsg_type != family_id) {
+    // nlmsg_type is either family id number for "good" messages
+    // or NLMSG_ERROR for bad massages.
+    if (ret_hdr->nlmsg_type == NLMSG_ERROR) {
+        fprintf(stderr, "Received NLMSG_ERROR message!\n");
         return NL_STOP;
     }
 
@@ -63,7 +64,7 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
     if (tb_msg[EXMPL_A_MSG]) {
         // parse it as string
         char * payload_msg = nla_get_string(tb_msg[EXMPL_A_MSG]);
-        printf("Kernel replied: %s", payload_msg);
+        printf("Kernel replied: %s\n", payload_msg);
     }
 
     return NL_OK;
@@ -121,6 +122,7 @@ int main(void) {
             // flags; my example doesn't use this flags; kernel module ignores them whn
             // parsing the message; it's just here to show you how it would work
             NLM_F_ACK | NLM_F_ECHO,
+            // EXMPL_C_ECHO_FAIL, // the command we want to trigger on the receiving side
             EXMPL_C_ECHO, // the command we want to trigger on the receiving side
             0 // Interface version (I don't know why this is useful; perhaps receiving side can adjust actions if
             // functionality evolves during development and multiple releases)

@@ -30,7 +30,9 @@ use std::process;
 impl_var_trait!(
     Command, u8, Cmd,
     Unspec => 0,
-    Echo => 1
+    Echo => 1,
+    // we expect an error reply for this command
+    Echo_Fail => 2
 );
 
 // Implements the necessary trait for the "neli" lib on an enum called "ControlAttr".
@@ -57,11 +59,13 @@ fn main() {
         str.clone()
     ).unwrap();
     let attrs = vec![attr];
-    let gen_nl_mhr = Genlmsghdr::new(Command::Echo, 1, attrs).unwrap();
+    let gen_nl_mhr = Genlmsghdr::new(Command::Echo/*_Fail*/, 1, attrs).unwrap();
     let nl_msh_flags = vec![NlmF::Request];
     let nl_msh = Nlmsghdr::new(
         None,
+        // this type is the msg type (for example Ok or Error)
         family_id,
+        //msg_type::OK,
         nl_msh_flags,
         None,
         Some(process::id()),
@@ -72,9 +76,17 @@ fn main() {
 
     // ----------------------------------------
     // Receive data;
-    // u16 is the family id; theoretically we could assert that
-    // res.nl_type == family_id
+    // u16 is the family id type
     let res = socket.recv_nl::<u16, Genlmsghdr::<Command, ControlAttr>>(None).unwrap();
+
+    /// From <linux/netlink.h>
+    const NLMSG_ERROR: u16 = 0x2;
+    if res.nl_type == NLMSG_ERROR {
+        // nl_type is NLMSG_ERROR for "error messages" or
+        // the family number for "good messages"
+        panic!("We received an error!");
+    }
+
     // iterate through all received attributes
     res.nl_payload.get_attr_handle().iter().for_each(|attr| {
         match attr.nla_type {

@@ -143,6 +143,8 @@ int main(void)
     memset(&nl_response_msg, 0, sizeof(nl_response_msg));
 
     nl_request_msg.n.nlmsg_len = NLMSG_LENGTH(GENL_HDRLEN);
+    // This is NOT the property for proper "routing" of the netlink message (that is located in the socket struct).
+    // This is family id for "good" messages or NLMSG_ERROR (0x2) for error messages
     nl_request_msg.n.nlmsg_type = nl_family_id;
     nl_request_msg.n.nlmsg_flags = NLM_F_REQUEST;
     nl_request_msg.n.nlmsg_seq = 0;

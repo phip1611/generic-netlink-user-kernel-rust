@@ -23,7 +23,10 @@ enum Attributes {
  */
 enum Commands {
     EXMPL_C_UNSPEC, // looks like the 0 entry must always be unused; first real command starts at 1
+    // Receives a message (null terminated string) and returns it.
     EXMPL_C_ECHO,
+    // Like EXMPL_C_ECHO but we receive an error reply. This way we can test how to cope with errors.
+    EXMPL_C_ECHO_FAIL,
     __EXMPL_C_MAX,
 };
 #define EXMPL_C_MAX (__EXMPL_C_MAX - 1)

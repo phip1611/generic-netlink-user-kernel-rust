@@ -18,6 +18,8 @@ static struct nla_policy doc_exmpl_genl_policy[EXMPL_A_MAX + 1] = {
 
 // callback function for echo command
 int doc_exmpl_echo(struct sk_buff *, struct genl_info *);
+// callback function for echo command, that replies with an error message
+int doc_exmpl_echo_fail(struct sk_buff *, struct genl_info *);
 
 // Array with all operations that out protocol on top of generic netlink
 // supports. An operation is the glue between a command (number) and the
@@ -27,6 +29,12 @@ struct genl_ops ops[__EXMPL_C_MAX] = {
         .cmd = EXMPL_C_ECHO,
         .flags = 0,
         .doit = doc_exmpl_echo,
+        .dumpit = NULL,
+    },
+    {
+        .cmd = EXMPL_C_ECHO_FAIL,
+        .flags = 0,
+        .doit = doc_exmpl_echo_fail,
         .dumpit = NULL,
     }
 };
@@ -103,7 +111,8 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
                            info->snd_seq + 1,  // sequence number: int (might be used by receiver, but not mandatory)
                            &doc_exmpl_gnl_family, // struct genl_family *
                            0, // flags: int (for netlink header)
-                           // this way we can trigger a specific command on the receiving side
+                           // this way we can trigger a specific command on the receiving side or imply
+                           // on which type of command we are currently answering; this is application specific
                            EXMPL_C_ECHO // cmd: u8 (for generic netlink header);
     );
     if (msg_head == NULL) {
@@ -124,6 +133,54 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     // Corrects the netlink message header (length) to include the appended
     // attributes. Only necessary if attributes have been added to the message.
     genlmsg_end(skb, msg_head);
+
+    // Send the message back
+    rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
+    if (rc != 0) {
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
+        return -rc;
+    }
+    return 0;
+}
+
+// An echo command, but we expect the reply to be an error.
+// We set nl->nlmsg_type to NLMSG_ERROR
+// https://linux.die.net/man/7/netlink
+int doc_exmpl_echo_fail(struct sk_buff *skb_2, struct genl_info *info)
+{
+    struct sk_buff *skb;
+    int rc;
+    struct nlmsghdr *nlh;
+    void * msg_head;
+
+    skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+    if (skb == NULL) {
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo_fail:\n");
+        return -1;
+    }
+
+    // returns pointer to user specific header
+    msg_head = genlmsg_put(
+           skb, // buffer for netlink message: struct sk_buff *
+           info->snd_portid, // sending pid: int
+           info->snd_seq + 1,  // sequence number: int
+           &doc_exmpl_gnl_family, // struct genl_family *
+           0, // flags: int (for netlink header)
+           EXMPL_C_ECHO // cmd: u8 (for generic netlink header);
+    );
+    if (msg_head == NULL) {
+        rc = ENOMEM;
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
+        return -rc;
+    }
+    // get pointer to nl header;
+    // minus because of:
+    // https://elixir.bootlin.com/linux/v5.8.9/source/net/netlink/genetlink.c#L442
+    nlh = msg_head - GENL_HDRLEN - NLMSG_HDRLEN;
+    // nlmsg_type is either used for "good message" in this case it is the family number
+    // or as "error message", then it's NLMSG_ERROR (0x2)
+    printk(KERN_INFO "answering with NLMSG_ERROR for debug reasons\n");
+    nlh->nlmsg_type = NLMSG_ERROR;
 
     // Send the message back
     rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);

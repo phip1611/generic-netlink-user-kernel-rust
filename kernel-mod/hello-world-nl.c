@@ -56,7 +56,7 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     printk(KERN_INFO "hello-world-nl: doc_exmpl_echo() invoked\n");
 
     if (info == NULL) {
-        printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -1;
     }
 
@@ -78,48 +78,57 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     }
 
     // Send a message back
+    // ---------------------
     // Allocate some memory, since the size is not yet known use NLMSG_GOODSIZE
     skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
     if (skb == NULL) {
-        printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -1;
     }
 
     // Create the message headers
-    /* arguments of genlmsg_put: 
-       struct sk_buff *, 
-       int (sending) pid, 
-       int sequence number, 
-       struct genl_family *, 
-       int flags, 
-       u8 command index (why do we need this?)
-    */
-    // msg_head = genlmsg_put(skb, 0, info->snd_seq + 1, &doc_exmpl_gnl_family, 0, EXMPL_C_ECHO);
-    // I thought that (sending) pid must be 0 (the kernel) but this breaks "neli" Rust lib with 
-    // "BadPid" error. I don't know which side is wrong and which follows the standard. We don't have 
-    // any disadvantage in our case if we just set the pid (snd_portid seems to be pid) of the user program.
-    msg_head = genlmsg_put(skb, info->snd_portid, info->snd_seq + 1, &doc_exmpl_gnl_family, 0, EXMPL_C_ECHO);
+
+    // Add header to netlink message;
+    // afterwards the buffer looks like this:
+    // -------------
+    // | netlink header                |
+    // | generic netlink header        |
+    // | <room for netlink attributes> |
+    // ---------------------------------
+    msg_head = genlmsg_put(skb, // buffer for netlink message: struct sk_buff *
+                           // I thought that (sending) pid must be 0 (the kernel) but this breaks "neli" Rust lib with 
+                           // "BadPid" error. I don't know which side is wrong and which follows the standard. We don't have 
+                           // any disadvantage in our case if we just set the pid (snd_portid seems to be pid) of the user program.
+                           info->snd_portid, // sending pid: int
+                           info->snd_seq + 1,  // sequence number: int (might be used by receiver, but not mandatory)
+                           &doc_exmpl_gnl_family, // struct genl_family *
+                           0, // flags: int (for netlink header)
+                           // this way we can trigger a specific command on the receiving side
+                           EXMPL_C_ECHO // cmd: u8 (for generic netlink header);
+    );
     if (msg_head == NULL) {
         rc = ENOMEM;
-        printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -rc;
     }
-    // Add a EXMPL_A_MSG attribute (actual value to be sent)
-    // just echo the value just received
+    // Add a EXMPL_A_MSG attribute (actual value/payload to be sent)
+    // just echo the value we just received
     rc = nla_put_string(skb, EXMPL_A_MSG, recv_msg);
     if (rc != 0)
     {
-        printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -rc;
     }
 
-    // Finalize the message
+    // Finalize the message:
+    // Corrects the netlink message header (length) to include the appended
+    // attributes. Only necessary if attributes have been added to the message.
     genlmsg_end(skb, msg_head);
 
     // Send the message back
     rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
     if (rc != 0) {
-        printk(KERN_INFO "An error occured in doc_exmpl_echo:\n");
+        printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -rc;
     }
     return 0;
@@ -134,7 +143,7 @@ static int __init hw_nl_init(void)
     rc = genl_register_family(&doc_exmpl_gnl_family);
     if (rc != 0) {
         printk(KERN_INFO "Register ops: %i\n", rc);
-        printk(KERN_INFO "An error occured while inserting the generic netlink example module\n");
+        printk(KERN_INFO "An error occurred while inserting the generic netlink example module\n");
         return -1;
     }
     return 0;

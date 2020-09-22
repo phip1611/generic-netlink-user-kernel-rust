@@ -26,6 +26,7 @@ use std::process;
 // Implements the necessary trait for the "neli" lib on an enum called "Command".
 // Command corresponds to "enum Commands" in kernel module C code.
 // Describes what callback function shall be invoked in the linux kernel module.
+// This is for the "cmd" field in Generic Netlink header.
 impl_var_trait!(
     Command, u8, Cmd,
     Unspec => 0,
@@ -35,6 +36,7 @@ impl_var_trait!(
 // Implements the necessary trait for the "neli" lib on an enum called "ControlAttr".
 // Command corresponds to "enum Attributes" in kernel module C code.
 // Describes the value type to data mappings inside the generic netlink packet payload.
+// This is for the Netlink Attributes (the actual payload) we want to send.
 impl_var_trait!(
     ControlAttr, u16, NlAttrType,
     Unspec => 0,
@@ -50,6 +52,7 @@ fn main() {
     let str = String::from("Hello from userland (Rust)");
     let attr = Nlattr::new(
         Some(str.len() as u16),
+        // this type is the attribute type
         ControlAttr::Msg,
         str.clone()
     ).unwrap();

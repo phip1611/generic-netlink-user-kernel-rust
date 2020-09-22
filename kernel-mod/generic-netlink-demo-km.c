@@ -53,7 +53,7 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     void * msg_head;
     char * recv_msg;
 
-    printk(KERN_INFO "hello-world-nl: doc_exmpl_echo() invoked\n");
+    printk(KERN_INFO "generic-netlink-demo-km: doc_exmpl_echo() invoked\n");
 
     if (info == NULL) {
         printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");

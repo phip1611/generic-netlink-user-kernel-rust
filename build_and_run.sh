@@ -1,12 +1,12 @@
 # clear kernel log
-sudo rmmod hello-world-nl
+sudo rmmod generic-netlink-demo-km
 sudo dmesg -c > /dev/null
 
 cd kernel-mod
 make clean
 make
-sudo insmod hello-world-nl.ko
-echo "inserted hello-world-nl.ko"
+sudo insmod generic-netlink-demo-km.ko
+echo "inserted generic-netlink-demo-km.ko"
 cd ..
 
 # rust user program:
@@ -42,4 +42,4 @@ echo "output of kernel log:"
 sudo dmesg
 
 # unload it at the end
-# sudo rmmod hello-world-nl
+# sudo rmmod generic-netlink-demo-km

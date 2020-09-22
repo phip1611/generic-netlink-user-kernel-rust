@@ -75,10 +75,10 @@ Kernel replied: Hello World from Userland with libnl & libnl-genl
 
 output of kernel log:
 [41545.749516] Generic Netlink Example Module inserted.
-[41545.893320] hello-world-nl: doc_exmpl_echo() invoked
+[41545.893320] generic-netlink-demo-km: doc_exmpl_echo() invoked
 [41545.893322] received: Hello from userland (Rust)
-[41546.605702] hello-world-nl: doc_exmpl_echo() invoked
+[41546.605702] generic-netlink-demo-km: doc_exmpl_echo() invoked
 [41546.605703] received: Hello World from C user program (using raw sockets)!
-[41546.606455] hello-world-nl: doc_exmpl_echo() invoked
+[41546.606455] generic-netlink-demo-km: doc_exmpl_echo() invoked
 [41546.606456] received: Hello World from Userland with libnl & libnl-genl
 ```

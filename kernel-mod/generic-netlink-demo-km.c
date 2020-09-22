@@ -135,7 +135,9 @@ int doc_exmpl_echo(struct sk_buff *skb_2, struct genl_info *info)
     genlmsg_end(skb, msg_head);
 
     // Send the message back
-    rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
+    rc = genlmsg_reply(skb, info);
+    // same as genlmsg_unicast(genl_info_net(info), skb, info->snd_portid)
+    // see https://elixir.bootlin.com/linux/v5.8.9/source/include/net/genetlink.h#L326
     if (rc != 0) {
         printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -rc;
@@ -183,7 +185,9 @@ int doc_exmpl_echo_fail(struct sk_buff *skb_2, struct genl_info *info)
     nlh->nlmsg_type = NLMSG_ERROR;
 
     // Send the message back
-    rc = genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
+    rc = genlmsg_reply(skb, info);
+    // same as genlmsg_unicast(genl_info_net(info), skb, info->snd_portid)
+    // see https://elixir.bootlin.com/linux/v5.8.9/source/include/net/genetlink.h#L326
     if (rc != 0) {
         printk(KERN_INFO "An error occurred in doc_exmpl_echo:\n");
         return -rc;

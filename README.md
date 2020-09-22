@@ -31,7 +31,7 @@ I don't know the author but from the comments I guess the author is *Anurag Chug
 - the user program sends a string to the kernel via generic netlink and receives the returned message
 
 ## How does generic netlink work?
-Although netlinks is one of the nicer interfaces for communicating between user and kernel in Linux it's still
+Although netlink is one of the nicer interfaces for communicating between user and kernel in Linux it's still
 quite tough. My understanding isn't perfect either. But my findings are:
 1) Linux offers Netlink as IPC interface between userland and kernel
    (I think Linux has some kind of netlink router internally that does all the magic)
@@ -49,6 +49,14 @@ quite tough. My understanding isn't perfect either. But my findings are:
 6) the user program uses the family number and sends generic netlink messages (see 2. a.) to this number and receives data.
    The data we send though the new family can be understood as our own simple protocol with attributes and operations
    (to be invoked on receiver side)
+
+#### How to distinguish between "good" and error messages?
+My findings and experience with netlink tells me that `Netlink Header -> nlmsg_type` is either the
+number of the family for a "good" message or `NLMSG_ERROR (0x2` for a bad message. 
+This can also be found here: https://linux.die.net/man/7/netlink 
+
+It's up to the sender to mark a message (a reply to a previous message) as an error message.
+The code examples here provide such a case.
 
 ## How to run
 - `$ sudo apt install build-essential linux-headers-$(uname -r) libnl-3 libnl-genl-3` 
@@ -82,3 +90,7 @@ output of kernel log:
 [41546.606455] generic-netlink-demo-km: doc_exmpl_echo() invoked
 [41546.606456] received: Hello World from Userland with libnl & libnl-genl
 ```
+
+## PLEASE NOTE
+Netlinks documentation is not good and perhaps not all my information here is right. I just want to share
+with you what worked for me.

@@ -33,8 +33,8 @@ I don't know the author but from the comments I guess the author is *Anurag Chug
 ## How does generic netlink work?
 Although netlink is one of the nicer interfaces for communicating between user and kernel in Linux it's still
 quite tough. My understanding isn't perfect either. But my findings are:
-1) Linux offers Netlink as IPC interface between userland and kernel
-   (I think Linux has some kind of netlink router internally that does all the magic)
+1) Linux offers Netlink as IPC interface between userland and kernel (and kernel - kernel, and user - user). through sockets.
+  
 2) Generic Netlink consists of two fundamental parts:
    
    2.a) a specification for the payload ("generic netlink header")
@@ -51,12 +51,18 @@ quite tough. My understanding isn't perfect either. But my findings are:
    (to be invoked on receiver side)
 
 #### How to distinguish between "good" and error messages?
-My findings and experience with netlink tells me that `Netlink Header -> nlmsg_type` is either the
-number of the family for a "good" message or `NLMSG_ERROR (0x2` for a bad message. 
-This can also be found here: https://linux.die.net/man/7/netlink 
+If you want to signal a bad message then I recommend you to set `Netlink Header -> nlmsg_type` to
+`NLMSG_ERROR (0x2)`. This is also what the [netlink man page](https://linux.die.net/man/7/netlink) recommends.
 
-It's up to the sender to mark a message (a reply to a previous message) as an error message.
-The code examples here provide such a case.
+Actually they also add a `struct nlmsgerr` as payload. They make two distinctions:
+  1) `nlmsg_type == NLMSG_ERROR` and  `struct nlmsgerr -> error == 0` should be interpreted as ACK message
+  2) `nlmsg_type == NLMSG_ERROR` and  `struct nlmsgerr -> error < 0` should be interpreted as error message
+
+Because it is up to sender and receiver to follow this principle anyway I'd advise against it.
+I consider all `Netlink Header -> nlmsg_type == NLMSG_ERROR` as bad/error message and all with
+`Netlink Header -> nlmsg_type == my_family_number` as "good". As `ACK` I personally use an empty answer
+with the same `Command` as the request. You could also add an extra `ACK` command (`see exmple-protocol-nl.h`)
+if it fits your needs.
 
 ## How to run
 - `$ sudo apt install build-essential linux-headers-$(uname -r) libnl-3 libnl-genl-3` 

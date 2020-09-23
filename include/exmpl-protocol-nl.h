@@ -9,7 +9,7 @@
  * The attributes that we send on top of generic netlink.
  * This is the kind of payload we can send per message.
  */
-enum Attributes {
+enum Attribute {
     EXMPL_A_UNSPEC, // 0 is never used; first real attribute is 1
     EXMPL_A_MSG,
     __EXMPL_A_MAX,
@@ -21,7 +21,7 @@ enum Attributes {
  * of generic netlink supports. This can be understood as the action that
  * we want to trigger on the receiving side.
  */
-enum Commands {
+enum Command {
     EXMPL_C_UNSPEC, // looks like the 0 entry must always be unused; first real command starts at 1
     // Receives a message (null terminated string) and returns it.
     EXMPL_C_ECHO,

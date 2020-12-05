@@ -168,7 +168,7 @@ int doc_exmpl_echo_fail(struct sk_buff *skb_2, struct genl_info *info)
            info->snd_seq + 1,  // sequence number: int
            &doc_exmpl_gnl_family, // struct genl_family *
            0, // flags: int (for netlink header)
-           EXMPL_C_ECHO // cmd: u8 (for generic netlink header);
+           EXMPL_C_ECHO_FAIL // cmd: u8 (for generic netlink header);
     );
     if (msg_head == NULL) {
         rc = ENOMEM;

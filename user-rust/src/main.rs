@@ -2,14 +2,18 @@
 //! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
 //! kernel module must be loaded first. Otherwise the family doesn't exist.
 
-use neli::consts::nl::{NlmF, NlmFFlags};
-use neli::consts::socket::NlFamily;
-use neli::genl::{Genlmsghdr, Nlattr};
-use neli::nl::{NlPayload, Nlmsghdr};
-use neli::socket::NlSocketHandle;
-use neli::types::{Buffer, GenlBuffer};
-use neli::utils::U32Bitmask;
-use neli::Nl;
+use neli::{
+    consts::{
+        nl::{NlmF, NlmFFlags},
+        socket::NlFamily,
+    },
+    genl::{Genlmsghdr, Nlattr},
+    nl::{NlPayload, Nlmsghdr},
+    socket::NlSocketHandle,
+    types::{Buffer, GenlBuffer},
+    utils::U32Bitmask,
+    Nl,
+};
 use std::process;
 use std::process::exit;
 
@@ -128,8 +132,7 @@ fn main() {
 
     let attr_handle = res.get_payload().unwrap().get_attr_handle();
     let received = attr_handle
-        .get_attribute(NlFoobarXmplAttribute::Msg)
+        .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
         .unwrap();
-    let received = String::deserialize(received.nla_payload.as_ref()).unwrap();
     println!("[User-Rust]: Received from kernel: '{}'", received);
 }

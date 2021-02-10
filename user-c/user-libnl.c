@@ -1,16 +1,6 @@
-// This code is the user part written in C that talks via a generic netlink family called
-// "CONTROL_EXMPL" to a linux kernel module. It uses 'libnl'.
-//
-// Requires packages "libnl-3-dev" and "libnl-genl-3-dev"
-//
-// Each netlink packet has a generic netlink packet as it's payload. In the generic netlink
-// package one can define several attributes (type to value mappings).
-// 
-// Workflow is the following:
-// 0) kernel module registers generic netlink family by name which creates a new 
-//    virtual/temporary netlink family (a number)
-// 1) client request family id of "CONTROL_EXMPL"
-// 2) client sends data to retrieved family id.
+//! Userland component written in C, that uses libnl to talk to a custom Netlink
+//! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
+//! kernel module must be loaded first. Otherwise the family doesn't exist.
 
 #include <stdio.h>
 
@@ -25,9 +15,11 @@
 
 // data/vars/enums/properties that describes our protocol that we implement
 // on top of generic netlink (like functions we want to trigger on the receiving side)
-#include "exmpl-protocol-nl.h"
+#include "gnl_foobar_xmpl.h"
 
 #define MESSAGE_TO_KERNEL "Hello World from Userland with libnl & libnl-genl"
+
+#define LOG_PREFIX "[User-C-libnl] "
 
 // netlink family id of the netlink family we want to use
 int family_id = -1;
@@ -40,12 +32,12 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
 
     // array that is a mapping from received attribute to actual data or NULL
     // (we can only send an specific attribute once per msg)
-    struct nlattr * tb_msg[EXMPL_A_MAX + 1];
+    struct nlattr * tb_msg[GNL_FOOBAR_XMPL_A_MAX + 1];
 
     // nlmsg_type is either family id number for "good" messages
     // or NLMSG_ERROR for bad massages.
     if (ret_hdr->nlmsg_type == NLMSG_ERROR) {
-        fprintf(stderr, "Received NLMSG_ERROR message!\n");
+        fprintf(stderr, LOG_PREFIX "Received NLMSG_ERROR message!\n");
         return NL_STOP;
     }
 
@@ -54,17 +46,17 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
 
     // Create attribute index based on a stream of attributes.
     nla_parse(tb_msg, // Index array to be filled (maxtype+1 elements)
-              EXMPL_A_MAX, // Maximum attribute type expected and accepted.
+              GNL_FOOBAR_XMPL_A_MAX, // Maximum attribute type expected and accepted.
               genlmsg_attrdata(gnlh, 0), // Head of attribute stream
               genlmsg_attrlen(gnlh, 0), // 	Length of attribute stream
-              NULL // Attribute validation policy
+              NULL // GNlFoobarXmplAttribute validation policy
     );
 
     // check if a msg was actually received
-    if (tb_msg[EXMPL_A_MSG]) {
+    if (tb_msg[GNL_FOOBAR_XMPL_A_MSG]) {
         // parse it as string
-        char * payload_msg = nla_get_string(tb_msg[EXMPL_A_MSG]);
-        printf("Kernel replied: %s\n", payload_msg);
+        char * payload_msg = nla_get_string(tb_msg[GNL_FOOBAR_XMPL_A_MSG]);
+        printf(LOG_PREFIX "Kernel replied: %s\n", payload_msg);
     }
 
     return NL_OK;
@@ -85,11 +77,11 @@ int main(void) {
     family_id = genl_ctrl_resolve(socket, FAMILY_NAME);
 
     if (family_id < 0) {
-        fprintf(stderr, "generic netlink family '" FAMILY_NAME "' NOT REGISTERED\n");
+        fprintf(stderr, LOG_PREFIX "generic netlink family '" FAMILY_NAME "' NOT REGISTERED\n");
         nl_socket_free(socket);
         exit(-1);
     } else {
-        printf("Family-ID of generic netlink family '" FAMILY_NAME "' is: %d\n", family_id);
+        printf(LOG_PREFIX "Family-ID of generic netlink family '" FAMILY_NAME "' is: %d\n", family_id);
     }
 
     // ############################################################################################
@@ -122,19 +114,18 @@ int main(void) {
             // flags; my example doesn't use this flags; kernel module ignores them whn
             // parsing the message; it's just here to show you how it would work
             NLM_F_ACK | NLM_F_ECHO,
-            // EXMPL_C_ECHO_FAIL, // the command we want to trigger on the receiving side
-            EXMPL_C_ECHO, // the command we want to trigger on the receiving side
+            GNL_FOOBAR_XMPL_C_ECHO, // the command we want to trigger on the receiving side
             0 // Interface version (I don't know why this is useful; perhaps receiving side can adjust actions if
             // functionality evolves during development and multiple releases)
     );
 
-    NLA_PUT_STRING(msg, EXMPL_A_MSG, MESSAGE_TO_KERNEL);
+    NLA_PUT_STRING(msg, GNL_FOOBAR_XMPL_A_MSG, MESSAGE_TO_KERNEL);
     int res = nl_send_auto(socket, msg);
     nlmsg_free(msg);
     if (res < 0) {
-        fprintf(stderr, "sending message failed\n");
+        fprintf(stderr, LOG_PREFIX "sending message failed\n");
     } else {
-        printf("Sent to kernel: %s\n", MESSAGE_TO_KERNEL);
+        printf(LOG_PREFIX "Sent to kernel: '%s'\n", MESSAGE_TO_KERNEL);
     }
 
     // ############################################################################################
@@ -142,7 +133,6 @@ int main(void) {
 
     // wait for received messages and handle them according to our callback handlers
     nl_recvmsgs_default(socket);
-
 
     nl_socket_free(socket);
     return 0;

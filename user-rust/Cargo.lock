@@ -14,9 +14,9 @@ checksum = "a2f02823cf78b754822df5f7f268fb59822e7296276d3e069d8e8cb26a14bd10"
 
 [[package]]
 name = "neli"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe3afe34744e9f33369008c813f06020448cf959b02dac4c47b6f66780dabda"
+checksum = "da4fa0a855a69cc627eeb823fea620094318f5e9b676cd6073b392f37cbafefd"
 dependencies = [
  "byteorder",
  "libc",

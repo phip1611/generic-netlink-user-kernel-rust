@@ -1,25 +1,6 @@
-//! Make sure to make familiar with netlink and generic netlink first!
-//!
-//! This code is the user part written in Rust that talks via a generic netlink family called
-//! "CONTROL_EXMPL" to a linux kernel module. It uses the "neli" lib/crate.
-//!
-//! Imagine that you are developing an application or a software with multiple components
-//! (at least userland program and kernel module) that has several operations you want
-//! to trigger on the receiving side. These are "operations" or "commands" and referenced
-//! by an u8 (basically an enum) on the receiving side. Further you can specify
-//! attributes, the actual data you want to transfer.
-//!
-//! Our application here is called "Foobar", has "FoobarOperations" and "FoobarAttributes".
-//!
-//! Each netlink packet has a generic netlink packet as it's payload. In the generic netlink
-//! package one can define several attributes (type to value mappings).
-//!
-//! Workflow is the following:
-//! 0) kernel module registers generic netlink family by name which creates a new
-//!    virtual/temporary netlink family (a number)
-//! 1) client request family id of "CONTROL_EXMPL" (ONCE during application startup)
-//! 2) client sends data to retrieved family id. (Kernel module must be able to process it)
-//! 3) client can get replies
+//! Userland component written in Rust, that uses neli to talk to a custom Netlink
+//! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
+//! kernel module must be loaded first. Otherwise the family doesn't exist.
 
 use neli::consts::nl::{NlmF, NlmFFlags};
 use neli::consts::socket::NlFamily;
@@ -30,32 +11,37 @@ use neli::types::{Buffer, GenlBuffer};
 use neli::utils::U32Bitmask;
 use neli::Nl;
 use std::process;
+use std::process::exit;
+
+/// Name of the Netlink family registered via Generic Netlink
+const FAMILY_NAME: &str = "gnl_foobar_xmpl";
+
+/// Data we want to send to kernel.
+const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
 
 // Implements the necessary trait for the "neli" lib on an enum called "FoobarOperation".
 // FoobarOperation corresponds to "enum Commands" in kernel module C code.
 // Describes what callback function shall be invoked in the linux kernel module.
 // This is for the "cmd" field in Generic Netlink header.
 neli::impl_var!(
-    FoobarOperation,
+    NlFoobarXmplOperation,
     u8,
     Unspec => 0,
-    Echo => 1,
-    // we expect an error reply for this command
-    EchoFail => 2
+    Echo => 1
 );
-impl neli::consts::genl::Cmd for FoobarOperation {}
+impl neli::consts::genl::Cmd for NlFoobarXmplOperation {}
 
 // Implements the necessary trait for the "neli" lib on an enum called "FoobarAttribute".
 // FoobarAttribute corresponds to "enum Attributes" in kernel module C code.
 // Describes the value type to data mappings inside the generic netlink packet payload.
 // This is for the Netlink Attributes (the actual payload) we want to send.
 neli::impl_var!(
-    FoobarAttribute,
+    NlFoobarXmplAttribute,
     u16,
     Unspec => 0,
     Msg => 1
 );
-impl neli::consts::genl::NlAttrType for FoobarAttribute {}
+impl neli::consts::genl::NlAttrType for NlFoobarXmplAttribute {}
 
 fn main() {
     let mut sock = NlSocketHandle::connect(
@@ -66,38 +52,46 @@ fn main() {
     )
     .unwrap();
 
-    let family_id = sock
-        .resolve_genl_family("CONTROL_EXMPL")
-        .expect("Generic Family must exist!");
-    println!("Generic family number is {}", family_id);
+    let family_id;
+    let res = sock.resolve_genl_family(FAMILY_NAME);
+    match res {
+        Ok(id) => family_id = id,
+        Err(e) => {
+            eprintln!(
+                "The Netlink family '{}' can't be found. Is the kernel module loaded yet? neli-error='{}'",
+                FAMILY_NAME, e
+            );
+            // exit without error in order for Continuous Integration and automatic testing not to fail
+            // when the kernel module is not loaded
+            exit(0);
+        }
+    }
 
-    let echo_msg = "Some data that has `Nl` trait implemented, like &str";
+    println!("[User-Rust]: Generic family number is {}", family_id);
 
     // We want to send an Echo command
-    // 1) prepare Foobar Attribute
-    let mut attrs: GenlBuffer<FoobarAttribute, Buffer> = GenlBuffer::new();
+    // 1) prepare NlFoobarXmpl Attribute
+    let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
         Nlattr::new(
-            // when is this not None? TODO
             None,
             false,
-            // not sure, what this is TODO
             false,
             // the type of the attribute. This is an u16 and corresponds
             // to an enum on the receiving side
-            FoobarAttribute::Msg,
-            echo_msg,
+            NlFoobarXmplAttribute::Msg,
+            ECHO_MSG,
         )
         .unwrap(),
     );
     // 2) prepare Generic Netlink Header. The Generic Netlink Header contains the
     //    attributes (actual data) as payload.
     let gnmsghdr = Genlmsghdr::new(
-        // FoobarOperation::Echo,
-        FoobarOperation::EchoFail,
-        // Version is dependent on your kernel module
-        // you can check it there and make special action, or you ignore it
+        NlFoobarXmplOperation::Echo,
+        // You can evolve your application over time using different versions or ignore it
+        // Application specific; receiver must take care of it
         1,
+        // actual payload
         attrs,
     );
     // 3) Prepare Netlink header. The Netlink header contains the Generic Netlink header
@@ -105,41 +99,37 @@ fn main() {
     let nlmsghdr = Nlmsghdr::new(
         None,
         family_id,
-        // This depends on your kernel module. Do you check there if any flags are used?
-        // Request is required (TODO by neli or by netlink?)
+        // This depends on the receiving side. Do you check there if any flags are present?
+        // Request-flag is required (TODO by neli or by netlink?)
         // others are up to you
         NlmFFlags::new(&[NlmF::Request]),
         None,
         // Port ID. Not necessarily the process id of the current process. This field
         // could be used to identify different points or threads inside your application
         // that send data to the kernel. This has nothing to do with "routing" the packet to
-        // the kernel
+        // the kernel, because this is done by the socket itself
         Some(process::id()),
         NlPayload::Payload(gnmsghdr),
     );
 
-    println!("Sending '{}' via netlink", echo_msg);
+    println!("[User-Rust]: Sending '{}' via netlink", ECHO_MSG);
+
     // Send data
     sock.send(nlmsghdr).expect("Send must work");
 
     // receive echo'ed message
-    // TODO as of neli 0.5.1 .recv() is Err if nl_type of netlink header is 0x2 (NLMSG_ERR)
-    //  I think this is wrong. A well formed error message should be Ok.
-    let res: Nlmsghdr<u16, Genlmsghdr<FoobarOperation, FoobarAttribute>> =
+    let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> =
         sock.recv().expect("Should receive a message").unwrap();
 
-    // According to Netlink Linux kernel code nl_type is either 0x2 (error) or our family id (ok)
-    if res.nl_type == 0x2 {
-        // it actually depends on the kernel module if it replies with this nl_type
-        // depends on your specific use case
-        panic!("Kernel replied with error");
-    }
+    /* USELESS, just note: this is always the case. Otherwise neli would have returned Error
     if res.nl_type == family_id {
         println!("Received successful reply!");
-    }
+    }*/
 
     let attr_handle = res.get_payload().unwrap().get_attr_handle();
-    let received = attr_handle.get_attribute(FoobarAttribute::Msg).unwrap();
+    let received = attr_handle
+        .get_attribute(NlFoobarXmplAttribute::Msg)
+        .unwrap();
     let received = String::deserialize(received.nla_payload.as_ref()).unwrap();
-    println!("Received from kernel: '{}'", received);
+    println!("[User-Rust]: Received from kernel: '{}'", received);
 }

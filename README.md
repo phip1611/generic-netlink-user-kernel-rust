@@ -1,102 +1,83 @@
-# Generic netlink message transfer between Linux kernel module and user programm (written in Rust)
+# Generic Netlink data transfer between Linux kernel module and user program (written in Rust)
 
-This is a stripped down example how to implement and use a simple protocol on top of the generic part of netlink.
-In this example a string is passed from userland to a linux kernel module and echo'ed back.
+This is a stripped down example about how to implement and use a simple protocol on top of the generic part of 
+Netlink, an IPC channel in Linux kernel. When you use Generic Netlink it is best to imagine to implement a 
+protocol yourself on top of Netlink. The protocol describes operations you want to trigger on the 
+receiving side as well as payload to transfer. In this example a string is passed from userland to a Linux
+kernel module and echo'ed back via Netlink.
 
-_When using generic netlink it is best to think about implementing a protocol yourself on top of generic netlink. 
-The protocol describes operations you want to trigger on the receiving side as well as payload you want to send._
+This repository consists of a Linux Kernel Module (**developed with Linux 5.4**), that is written in C, and three 
+**independent** userland components, that all act as standalone binaries and talk to the kernel module via 
+Netlink.
 
-**Linux kernel module needs at Linux kernel (5.x) to compile.**.
+The userland components are:
+1) a Rust program using [neli](https://crates.io/crate/neli) as abstraction/library for (Generic) Netlink
+2) a C program using [libnl](https://www.infradead.org/~tgr/libnl/) as abstraction/library for (Generic) Netlink
+3) a pure C program using raw sockets and no library for abstraction _(originally not my work; see below - but I 
+   adjusted some parts)_
 
-I had to figure this out for an uni project and it was quite tough. So I'd like to share my findings
-with the open source world!
+*The kernel code and 3) are inspired by (I don't know the author but from the comments I guess) **Anurag Chugh** 
+([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)).*
 
-This repository consists of:
-0) an `exmpl-protocol-nl.h`-file which describes common properties/operations the example protocol
-1) linux kernel module (written in C) _(originally not my work; see below - but I adjusted some parts)_
-2) userland program written in Rust _(my work)_
-3) userland program written in C using raw sockets  _(originally not my work; see below - but I adjusted some parts)_
-3) userland program written in C using [libnl](https://www.infradead.org/~tgr/libnl/) _(my work)_
-4) shell script that builds and starts everything.
+## Netlink vs Generic Netlink
+Netlink knows about *families* and each family has an ID statically assigned in the Kernel code, 
+see `<linux/netlink.h>`. Generic Netlink is one of these families and it can be used to create new families
+on the fly/during runtime. A new family ID gets assigned temporarily for the name and with this ID you can
+start to send or listen for messages on the given ID (in Kernel and in userland).
 
-The userland programs in C are for just for comparison. The work for the linux kernel part and userland (3.)
-program was originally published here: 
-http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html
+Generic Netlink (`<linux/genetlink.h>`) also helps you in the kernel code with some convenient functions for 
+receiving and replying, and it offers `struct genlmsghdr`. The struct `struct genlmsghdr` offers the two 
+important properties `cmd` and `version`. `cmd` is used to trigger an specific action on the receiving side 
+whereas `version` can be used to cope with different versions (e.g. older code, newer versions of your app).
 
-I don't know the author but from the comments I guess the author is *Anurag Chugh* ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)). I want to give a big shoutout to him! 
-**The C userland program (3) here is the same as in the link but the linux code was adjusted to work with Linux 5.4 (5.x)!**
+A ***Generic Netlink*** message is a message that has the following structure:
+![Overview Generic Netlink message](Generic%20Netlink%20Message%20Overview.png "Overview Generic Netlink message")
 
-## What it does
-- the linux kernel module supports a single operation: receives a string, prints it to kernel log and send a string back (echo)
-- the user program sends a string to the kernel via generic netlink and receives the returned message
+So in fact, in this demo, we are transferring Generic Netlink messages, which are Netlink messages with a 
+Generic Netlink header.
 
-## How does generic netlink work?
-Although netlink is one of the nicer interfaces for communicating between user and kernel in Linux it's still
-quite tough. My understanding isn't perfect either. But my findings are:
-1) Linux offers Netlink as IPC interface between userland and kernel (and kernel - kernel, and user - user). through sockets.
-  
-2) Generic Netlink consists of two fundamental parts:
-   
-   2.a) a specification for the payload ("generic netlink header")
-   
-   2.b) a netlink family that is reachable through ID NETLINK_GENERIC (enum value for 16)
+## Let's talk about the code
 
-3) "NETLINK_GENERIC" is used to register new families and receive the numeric ids of families by their name
-4) linux kernel module can register a new family which creates new family id/number temporarily
-   (additional to the families [here](https://github.com/torvalds/linux/blob/master/include/uapi/linux/netlink.h))
-5) user program asks for the family number of %FAMILY_NAME% using generic netlink (handled by netlink manager inside Linux);
-   receives number
-6) the user program uses the family number and sends generic netlink messages (see 2. a.) to this number and receives data.
-   The data we send though the new family can be understood as our own simple protocol with attributes and operations
-   (to be invoked on receiver side)
-
-#### How to distinguish between "good" and error messages?
-If you want to signal a bad message then I recommend you to set `Netlink Header -> nlmsg_type` to
-`NLMSG_ERROR (0x2)`. This is also what the [netlink man page](https://linux.die.net/man/7/netlink) recommends.
-
-Actually they also add a `struct nlmsgerr` as payload. They make two distinctions:
-  1) `nlmsg_type == NLMSG_ERROR` and  `struct nlmsgerr -> error == 0` should be interpreted as ACK message
-  2) `nlmsg_type == NLMSG_ERROR` and  `struct nlmsgerr -> error < 0` should be interpreted as error message
-
-Because it is up to sender and receiver to follow this principle anyway I'd advise against it.
-I consider all `Netlink Header -> nlmsg_type == NLMSG_ERROR` as bad/error message and all with
-`Netlink Header -> nlmsg_type == my_family_number` as "good". As `ACK` I personally use an empty answer
-with the same `Command` as the request. You could also add an extra `ACK` command (`see exmple-protocol-nl.h`)
-if it fits your needs.
+In this example we create a Netlink family on the fly called 
+`gnl_foobar_xmpl` using Generic Netlink. The common Netlink properties shared by the C projects (Kernel and 
+the two C userland components) are specified in `include/gnl_foobar_xmpl.h`. The very first step is the 
+kernel module which needs to be loaded and register the Netlink family using Generic Netlink. Afterwards 
+the userland components can talk to it.
 
 ## How to run
-- `$ sudo apt install build-essential linux-headers-$(uname -r) libnl-3 libnl-genl-3` 
+- this needs at least Linux 5.4
+- `$ sudo apt install build-essential`
+- `$ sudo apt install libnl-3 libnl-genl-3`
+- `$ sudo apt install linux-headers-$(uname -r)` ()
 - make sure rustup/cargo is installed
 - `$ sh ./build_and_run.sh`
+
+#### Example output
 ```
-rust user programm:
-Generic family number is 38
-Sending 'Hello from userland (Rust)' via netlink
-Hello from userland (Rust)
+[User-Rust]: Generic family number is 34
+[User-Rust]: Sending 'Some data that has `Nl` trait implemented, like &str' via netlink
+[User-Rust]: Received from kernel: 'Some data that has `Nl` trait implemented, like &str'
 
+[User-C-Pure] extracted family id is: 34
+[User-C-Pure] Sent to kernel: Hello World from C user program (using raw sockets)!
+[User-C-Pure] Kernel replied: Hello World from C user program (using raw sockets)!
 
-c user programm (using raw sockets):
-extracted family id is: 38
-Sent to kernel: Hello World from C user program (using raw sockets)!
-Kernel replied: Hello World from C user program (using raw sockets)!
-
-
-c user programm (using libnl):
-Family-ID of generic netlink family 'CONTROL_EXMPL' is: 38
-Sent to kernel: Hello World from Userland with libnl & libnl-genl
-Kernel replied: Hello World from Userland with libnl & libnl-genl
-
+[User-C-libnl] Family-ID of generic netlink family 'gnl_foobar_xmpl' is: 34
+[User-C-libnl] Sent to kernel: 'Hello World from Userland with libnl & libnl-genl'
+[User-C-libnl] Kernel replied: Hello World from Userland with libnl & libnl-genl
 
 output of kernel log:
-[41545.749516] Generic Netlink Example Module inserted.
-[41545.893320] generic-netlink-demo-km: doc_exmpl_echo() invoked
-[41545.893322] received: Hello from userland (Rust)
-[41546.605702] generic-netlink-demo-km: doc_exmpl_echo() invoked
-[41546.605703] received: Hello World from C user program (using raw sockets)!
-[41546.606455] generic-netlink-demo-km: doc_exmpl_echo() invoked
-[41546.606456] received: Hello World from Userland with libnl & libnl-genl
+[10144.393103] Generic Netlink Example Module inserted.
+[10144.461217] generic-netlink-demo-km: gnl_foobar_xmpl_cb_echo() invoked
+[10144.461218] received: 'Some data that has `Nl` trait implemented, like &str'
+[10144.542496] generic-netlink-demo-km: gnl_foobar_xmpl_cb_echo() invoked
+[10144.542497] received: 'Hello World from C user program (using raw sockets)!'
+[10144.543104] generic-netlink-demo-km: gnl_foobar_xmpl_cb_echo() invoked
+[10144.543105] received: 'Hello World from Userland with libnl & libnl-genl'
+
 ```
 
-## PLEASE NOTE
-Netlinks documentation is not good and perhaps not all my information here is right. I just want to share
-with you what worked for me.
+## Trivia
+I had to figure this out for an uni project and it was quite tough in the beginning, so I'd like to
+share my findings with the open source world! Netlink documentation is not good (especially in the 
+kernel) and perhaps not all my information are right. I just want to show what worked for me.

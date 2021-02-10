@@ -1,8 +1,8 @@
 # clear kernel log
-sudo rmmod generic-netlink-demo-km
+sudo rmmod gnl_foobar_xmpl-km
 sudo dmesg -c > /dev/null
 
 make clean
 make
-sudo insmod generic-netlink-demo-km.ko
-echo "inserted generic-netlink-demo-km.ko"
+sudo insmod gnl_foobar_xmpl-km.ko
+echo "inserted gnl_foobar_xmpl-km.ko"

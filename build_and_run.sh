@@ -5,8 +5,6 @@ cd ..
 # rust user program:
 # should communicate with kernel module via netlink 
 cd user-rust
-echo
-echo "rust user programm:"
 cargo run
 cd ..
 
@@ -18,21 +16,14 @@ make clean
 make
 
 echo
-echo
-echo
-echo "c user programm (using raw sockets):"
 ./user-pure
 echo
-echo
-echo "c user programm (using libnl):"
 ./user-libnl
 cd ..
 
-echo
-echo
 echo
 echo "output of kernel log:"
 sudo dmesg
 
 # unload it at the end
-# sudo rmmod generic-netlink-demo-km
+sudo rmmod gnl_foobar_xmpl-km

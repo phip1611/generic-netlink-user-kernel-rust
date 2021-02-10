@@ -5,3 +5,5 @@
 *.mod.c
 modules.order
 Module.symvers
+*.o.d
+cmake-build-debug

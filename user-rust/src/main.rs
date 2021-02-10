@@ -23,8 +23,8 @@ const FAMILY_NAME: &str = "gnl_foobar_xmpl";
 /// Data we want to send to kernel.
 const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
 
-// Implements the necessary trait for the "neli" lib on an enum called "FoobarOperation".
-// FoobarOperation corresponds to "enum Commands" in kernel module C code.
+// Implements the necessary trait for the "neli" lib on an enum called "NlFoobarXmplOperation".
+// NlFoobarXmplOperation corresponds to "enum GNlFoobarXmplCommand" in kernel module C code.
 // Describes what callback function shall be invoked in the linux kernel module.
 // This is for the "cmd" field in Generic Netlink header.
 neli::impl_var!(
@@ -35,8 +35,8 @@ neli::impl_var!(
 );
 impl neli::consts::genl::Cmd for NlFoobarXmplOperation {}
 
-// Implements the necessary trait for the "neli" lib on an enum called "FoobarAttribute".
-// FoobarAttribute corresponds to "enum Attributes" in kernel module C code.
+// Implements the necessary trait for the "neli" lib on an enum called "NlFoobarXmplAttribute".
+// NlFoobarXmplAttribute corresponds to "enum NlFoobarXmplAttribute" in kernel module C code.
 // Describes the value type to data mappings inside the generic netlink packet payload.
 // This is for the Netlink Attributes (the actual payload) we want to send.
 neli::impl_var!(

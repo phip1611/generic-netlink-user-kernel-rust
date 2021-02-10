@@ -12,7 +12,6 @@ use neli::{
     socket::NlSocketHandle,
     types::{Buffer, GenlBuffer},
     utils::U32Bitmask,
-    Nl,
 };
 use std::process;
 use std::process::exit;

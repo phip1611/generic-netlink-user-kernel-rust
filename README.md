@@ -34,10 +34,10 @@ important properties `cmd` and `version`. `cmd` is used to trigger a specific ac
 whereas `version` can be used to cope with different versions (e.g. older code, newer versions of your app).
 
 A ***Generic Netlink*** message is a message that has the following structure:
-![Overview Generic Netlink message](Generic%20Netlink%20Message%20Overview.png "Overview Generic Netlink message")
+![Overview Generic Netlink message](Generic%20Netlink%20Message%20Overview.png "Overview Generic Netlink message. I use operation and command as synonyms.")
 
-So in fact, in this demo, we are transferring Generic Netlink messages, which are Netlink messages with a 
-Generic Netlink header.
+(I use "Operation" and "Command" as synonyms.) In fact, in this demo, we are transferring Generic Netlink messages, 
+which are Netlink messages with a Generic Netlink header.
 
 ## Let's talk about the code
 

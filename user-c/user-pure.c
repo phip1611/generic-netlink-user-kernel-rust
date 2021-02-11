@@ -1,6 +1,12 @@
-//! Userland component written in C, that uses pure sockets to talk to a custom Netlink
-//! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
-//! kernel module must be loaded first. Otherwise the family doesn't exist.
+/* Originally published here:
+ * http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html
+ * Probably by Anurag Chugh: https://www.blogger.com/profile/15390575283968794206
+ */
+
+/* Userland component written in C, that uses pure sockets to talk to a custom Netlink
+ * family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
+ * kernel module must be loaded first. Otherwise the family doesn't exist.
+ */
 
 #include <stdio.h>
 #include <unistd.h>
@@ -22,14 +28,14 @@
 
 #define MESSAGE_TO_KERNEL "Hello World from C user program (using raw sockets)!"
 
-//Variables used for netlink
-int nl_fd;                     //netlink socket's file descriptor
-struct sockaddr_nl nl_address; //netlink socket address
-int nl_family_id;              //The family ID resolved by the netlink controller for this userspace program
-int nl_rxtx_length;            //Number of bytes sent or received via send() or recv()
-struct nlattr *nl_na;          //pointer to netlink attributes structure within the payload
+// Variables used for netlink
+int nl_fd;                     // netlink socket's file descriptor
+struct sockaddr_nl nl_address; // netlink socket address
+int nl_family_id;              // The family ID resolved by the netlink controller for this userspace program
+int nl_rxtx_length;            // Number of bytes sent or received via send() or recv()
+struct nlattr *nl_na;          // pointer to netlink attributes structure within the payload
 struct
-{ //memory for netlink request and response messages - headers are included
+{ // memory for netlink request and response messages - headers are included
     struct nlmsghdr n;
     struct genlmsghdr g;
     char buf[256];
@@ -180,7 +186,7 @@ int main(void)
     nl_na = (struct nlattr *)GENLMSG_DATA(&nl_response_msg);
     printf(LOG_PREFIX "Kernel replied: %s\n", (char *)NLA_DATA(nl_na));
 
-    //Step 5. Close the socket and quit
+    // Step 5. Close the socket and quit
     close(nl_fd);
     return 0;
 }

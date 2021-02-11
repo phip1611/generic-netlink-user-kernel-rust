@@ -1,7 +1,10 @@
-# Generic Netlink data transfer between Linux kernel module and user program (written in Rust)
+# Generic Netlink data transfer between userland (C & Rust) and Linux kernel using a custom Netlink family
 
 This is a stripped down example about how to implement and use a simple protocol on top of the generic part of 
-Netlink, an IPC channel in Linux kernel. When you use Generic Netlink it is best to imagine to implement a 
+Netlink, an IPC channel in Linux kernel. I'm using a custom Netlink family that I create with Generic Netlink 
+during runtime with a custom Linux kernel module/driver.
+
+When you use Generic Netlink it is best to imagine to implement a 
 protocol yourself on top of Netlink. The protocol describes operations you want to trigger on the 
 receiving side as well as payload to transfer. In this example a string is passed from userland to a Linux
 kernel module and echo'ed back via Netlink.
@@ -10,24 +13,24 @@ This repository consists of a Linux Kernel Module (**developed with Linux 5.4**)
 **independent** userland components, that all act as standalone binaries and talk to the kernel module via 
 Netlink.
 
-The userland components are:
+The (standalone, independent) userland components are:
 1) a Rust program using [neli](https://crates.io/crate/neli) as abstraction/library for (Generic) Netlink
 2) a C program using [libnl](https://www.infradead.org/~tgr/libnl/) as abstraction/library for (Generic) Netlink
 3) a pure C program using raw sockets and no library for abstraction _(originally not my work; see below - but I 
    adjusted some parts)_
 
-*The kernel code and 3) are inspired by (I don't know the author but from the comments I guess) **Anurag Chugh** 
+*The pure C program (3) code is inspired, or in fact a copy, of the code on [electronicsfaq.com](http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html) by (I don't know the author but from the comments I guess) **Anurag Chugh** 
 ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)).*
 
 ## Netlink vs Generic Netlink
 Netlink knows about *families* and each family has an ID statically assigned in the Kernel code, 
 see `<linux/netlink.h>`. Generic Netlink is one of these families and it can be used to create new families
 on the fly/during runtime. A new family ID gets assigned temporarily for the name and with this ID you can
-start to send or listen for messages on the given ID (in Kernel and in userland).
+start to send or listen for messages on the given ID (in Kernel and in userland). Therefore the ID is used for adressing packets in Netlink.
 
 Generic Netlink (`<linux/genetlink.h>`) also helps you in the kernel code with some convenient functions for 
 receiving and replying, and it offers `struct genlmsghdr`. The struct `struct genlmsghdr` offers the two 
-important properties `cmd` and `version`. `cmd` is used to trigger an specific action on the receiving side 
+important properties `cmd` and `version`. `cmd` is used to trigger a specific action on the receiving side 
 whereas `version` can be used to cope with different versions (e.g. older code, newer versions of your app).
 
 A ***Generic Netlink*** message is a message that has the following structure:
@@ -45,7 +48,7 @@ kernel module which needs to be loaded and register the Netlink family using Gen
 the userland components can talk to it.
 
 ## How to run
-- this needs at least Linux 5.4
+- this needs at least Linux 5.*
 - `$ sudo apt install build-essential`
 - `$ sudo apt install libnl-3 libnl-genl-3`
 - `$ sudo apt install linux-headers-$(uname -r)` ()

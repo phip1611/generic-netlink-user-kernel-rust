@@ -1,3 +1,23 @@
+/* Copyright 2021 Philipp Schuster
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in the 
+ * Software without restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the
+ * following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies
+ * or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <net/sock.h>
@@ -8,6 +28,13 @@
 // data/vars/enums/properties that describes our protocol that we implement
 // on top of generic netlink (like functions we want to trigger on the receiving side)
 #include "gnl_foobar_xmpl.h"
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Philipp Schuster <phip1611@gmail.com>");
+MODULE_DESCRIPTION(
+    "Linux driver that registers the Netlink family "
+    "\"gnl_foobar_xmpl\" via Generic Netlink and responds to echo messages."
+);
 
 /* attribute policy: defines which attribute has which type (e.g int, char * etc)
  * possible values defined in net/netlink.h 
@@ -31,12 +58,12 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_XMPL_C_MAX + 1] = {
     }
 };
 
-//family definition
+// family definition
 static struct genl_family gnl_foobar_xmpl_family = {
     .id = 0, // automatically assign an id
     .hdrsize = 0, // we don't use custom additional header info
     .name = FAMILY_NAME, // The name of this family, used by userspace application to get the numeric ID
-    .version = 1,   // family specific version number
+    .version = 1,   // family specific version number; can be used to evole application over time (multiple versions)
     .maxattr = GNL_FOOBAR_XMPL_A_MAX, // should also be the bounds check for policy
     .ops = gnl_foobar_xmpl_ops, // delegates all incoming requests to callback functions
     .n_ops = GNL_FOOBAR_XMPL_C_MAX,
@@ -44,7 +71,7 @@ static struct genl_family gnl_foobar_xmpl_family = {
     .module = THIS_MODULE,
 };
 
-// Callback-fucntion if generic netlin message with type
+// Callback function if a message with command GNL_FOOBAR_XMPL_C_ECHO was received
 int gnl_foobar_xmpl_cb_echo(struct sk_buff *sender_skb, struct genl_info *info)
 {    
     struct nlattr *na;
@@ -170,4 +197,3 @@ static void __exit gnl_foobar_xmpl_module_exit(void)
 module_init(gnl_foobar_xmpl_module_init);
 module_exit(gnl_foobar_xmpl_module_exit);
 
-MODULE_LICENSE("GPL");

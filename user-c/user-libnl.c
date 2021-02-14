@@ -141,7 +141,7 @@ int main(void) {
             // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
             // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
             // in your Kernel module. This might result in a deadlock on the socket if an expected
-            // reply is never received.
+            // reply you are waiting for in a blocking way is never received.
             // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
             //
             // libnl specific: always adds NLM_F_REQUEST

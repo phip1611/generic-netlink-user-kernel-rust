@@ -72,13 +72,26 @@ int main(void)
 
     // Populate the netlink header
     nl_request_msg.n.nlmsg_type = GENL_ID_CTRL;
+    // You can use flags in an application specific way (e.g. ACK flag). It is up to you
+    // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
+    // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
+    // in your Kernel module. This might result in a deadlock on the socket if an expected
+    // reply is never received.
+    // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
     nl_request_msg.n.nlmsg_flags = NLM_F_REQUEST;
+    // It is up to you if you want to split a data transfer into multiple sequences. (application specific)
     nl_request_msg.n.nlmsg_seq = 0;
+    // Port ID. Not necessarily the process id of the current process. This field
+    // could be used to identify different points or threads inside your application
+    // that send data to the kernel. This has nothing to do with "routing" the packet to
+    // the kernel, because this is done by the socket itself
     nl_request_msg.n.nlmsg_pid = getpid();
     nl_request_msg.n.nlmsg_len = NLMSG_LENGTH(GENL_HDRLEN);
     // Populate the payload's "family header" : which in our case is genlmsghdr
     nl_request_msg.g.cmd = CTRL_CMD_GETFAMILY;
-    nl_request_msg.g.version = 0x1;
+    // You can evolve your application over time using different versions or ignore it.
+    // Application specific; receiver can check this value and to specific logic.
+    nl_request_msg.g.version = 1;
     // Populate the payload's "netlink attributes"
     nl_na = (struct nlattr *)GENLMSG_DATA(&nl_request_msg);
     nl_na->nla_type = CTRL_ATTR_FAMILY_NAME;

@@ -127,17 +127,31 @@ int main(void) {
     // nl message with default size
     struct nl_msg * msg = nlmsg_alloc();
     genlmsg_put(
-            msg,  // nl msg
+            msg,  // memory buffer
+            // Port ID. Not necessarily the process id of the current process. This field
+            // could be used to identify different points or threads inside your application
+            // that send data to the kernel. This has nothing to do with "routing" the packet to
+            // the kernel, because this is done by the socket itself
             NL_AUTO_PORT, // auto assign current pid
-            NL_AUTO_SEQ, // begin wit hseq number 0
+            // It is up to you if you want to split a data transfer into multiple sequences. (application specific)
+            NL_AUTO_SEQ, // begin wit seq number 0
             family_id, // family id
             0, // no additional user header
-            // flags; my example doesn't use this flags; kernel module ignores them whn
-            // parsing the message; it's just here to show you how it would work
-            NLM_F_ACK | NLM_F_ECHO,
+            // You can use flags in an application specific way (e.g. ACK flag). It is up to you
+            // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
+            // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
+            // in your Kernel module. This might result in a deadlock on the socket if an expected
+            // reply is never received.
+            // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
+            //
+            // libnl specific: always adds NLM_F_REQUEST
+            // see <libnl>/nl.c#nl_complete_msg()
+            NLM_F_REQUEST,
+            // cmd in Generic Netlink Header
             GNL_FOOBAR_XMPL_C_ECHO, // the command we want to trigger on the receiving side
-            0 // Interface version (I don't know why this is useful; perhaps receiving side can adjust actions if
-            // functionality evolves during development and multiple releases)
+            // You can evolve your application over time using different versions or ignore it.
+            // Application specific; receiver can check this value and to specific logic
+            1
     );
 
     NLA_PUT_STRING(msg, GNL_FOOBAR_XMPL_A_MSG, MESSAGE_TO_KERNEL);

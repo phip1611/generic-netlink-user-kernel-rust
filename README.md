@@ -85,22 +85,23 @@ I measured the average time in all three userland components for establishing a 
 building the message (payload), sending it to the kernel, and receiving the reply. I ran every user 
 component in release mode (optimized) and took the measurements inside the code. These are the results.
 
-| User Rust | User C (Pure) | User C (libnl) |
-|-----------|---------------|----------------|
-|      12µs |           8µs |           13µs |
+| User Rust (`neli`) | User C (Pure) | User C (`libnl`) |
+|------------------|---------------|----------------|
+|             12µs |           8µs |           13µs |
 
 Abstractions cost us a little bit of time :) Using strace we can find that the Rust program and C (libnl) 
-doing much more system calls. I executed
+doing much more system calls. I executed the following statements which results in the table shown below.
+
 - `$ strace user-rust/target/release/user-rust 2>&1 >/dev/null | wc -l`
 - `$ strace ./user-pure 2>&1 >/dev/null | wc -l`
-- `$ strace ./user-libnl 2>&1 >/dev/null | wc -l`
-which resulted in the following table.
+- `$ strace ./user-libnl 2>&1 >/dev/null | wc -l` \
 
-|  User Rust  | User C (Pure) | User C (libnl) |
-|-------------|---------------|----------------|
-| 108 syscalls |   45 syscalls |   89 syscalls |
 
-Look into the measurements/ directory of this repository, you can find the traces there. I didn't dived 
+| User Rust (`neli`) | User C (Pure) | User C (`libnl`) |
+|--------------------|---------------|----------------|
+|       108 syscalls |   45 syscalls |   89 syscalls |
+
+Look into the [measurements/](https://github.com/phip1611/generic-netlink-user-kernel-rust/tree/main/measurements) directory of this repository, you can find the traces there. I didn't dived 
 in deeper but you can clearly see that libnl and neli results in a lot more syscalls which explains the 
 slower result.
 

@@ -82,8 +82,9 @@ output of kernel log:
 
 ## Measurement and comparison the userland components (abstractions cost)
 I measured the average time in all three userland components for establishing a Netlink connection,
-building the message (payload), sending it to the kernel, and receiving the reply. I ran every user 
-component in release mode (optimized) and took the measurements inside the code. These are the results.
+building the message (payload), sending it to the kernel, and receiving the reply all together. I ran every user 
+component in release mode (optimized) and took the measurements inside the code. These are the average
+durations in microseconds. I did 100,000 iterations for each measurement.
 
 | User Rust (`neli`) | User C (Pure) | User C (`libnl`) |
 |------------------|---------------|----------------|

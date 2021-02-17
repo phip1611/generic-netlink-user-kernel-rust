@@ -80,6 +80,30 @@ output of kernel log:
 
 ```
 
+## Measurement and comparison the userland components (abstractions cost)
+I measured the average time in all three userland components for establishing a Netlink connection,
+building the message (payload), sending it to the kernel, and receiving the reply. I ran every user 
+component in release mode (optimized) and took the measurements inside the code. These are the results.
+
+| User Rust | User C (Pure) | User C (libnl) |
+|-----------|---------------|----------------|
+|      12µs |           8µs |           13µs |
+
+Abstractions cost us a little bit of time :) Using strace we can find that the Rust program and C (libnl) 
+doing much more system calls. I executed
+- `$ strace user-rust/target/release/user-rust 2>&1 >/dev/null | wc -l`
+- `$ strace ./user-pure 2>&1 >/dev/null | wc -l`
+- `$ strace ./user-libnl 2>&1 >/dev/null | wc -l`
+which resulted in the following table.
+
+|  User Rust  | User C (Pure) | User C (libnl) |
+|-------------|---------------|----------------|
+| 108 syscalls |   45 syscalls |   89 syscalls |
+
+Look into the measurements/ directory of this repository, you can find the traces there. I didn't dived 
+in deeper but you can clearly see that libnl and neli results in a lot more syscalls which explains the 
+slower result.
+
 ## Trivia
 I had to figure this out for an uni project and it was quite tough in the beginning, so I'd like to
 share my findings with the open source world! Netlink documentation is not good (especially in the 

@@ -10,10 +10,10 @@ user-libnl: user-libnl.c
 	# "-3" is the version (latest 3.x)
 
 	# to get -I and -l: execute '$(pkg-config --cflags --libs libnl-genl-3.0)'
-	gcc -Wall -Werror -O3 -o $@ $+ -I$(COMMON_INCLUDE) -I/usr/include/libnl3  -lnl-3 -lnl-genl-3
+	gcc -Wall -Werror -o $@ $+ -I$(COMMON_INCLUDE) -I/usr/include/libnl3  -lnl-3 -lnl-genl-3
 
 user-pure: user-pure.c
-	gcc -Wall -Werror -O3 -o $@ $+ -I$(COMMON_INCLUDE)
+	gcc -Wall -Werror -o $@ $+ -I$(COMMON_INCLUDE)
 
 clean:
 	rm -rf user user-libnl user-pure

@@ -50,10 +50,10 @@ the userland components can talk to it.
 ## How to run
 - this needs at least Linux 5.*
 - `$ sudo apt install build-essential`
-- `$ sudo apt install libnl-3 libnl-genl-3`
-- `$ sudo apt install linux-headers-$(uname -r)` ()
-- make sure rustup/cargo is installed
-- `$ sh ./build_and_run.sh`
+- `$ sudo apt install libnl-3 libnl-genl-3`: for C example with `libnl`
+- `$ sudo apt install linux-headers-$(uname -r)`: useful only for easier Kernel Module development; Clion IDE can find headers
+- make sure rustup/cargo is installed: for Rust userland component
+- `$ sh ./build_and_run.sh`: builds and starts everything. Creates an output as shown below.)
 
 #### Example output
 ```
@@ -90,8 +90,9 @@ durations in microseconds. I did 100,000 iterations for each measurement.
 |------------------|---------------|----------------|
 |             12µs |           8µs |           13µs |
 
-Abstractions cost us a little bit of time :) Using strace we can find that the Rust program and C (libnl) 
-doing much more system calls. I executed the following statements which results in the table shown below.
+Abstractions cost us a little bit of time :) Using strace we can find that the Rust program and C (with `libnl`) 
+doing much more system calls. Before I measured this, I removed the loop (100,000 iterations, as mentioned above)
+again and just did a single run. I executed the following statements which results in the table shown below.
 
 - `$ strace user-rust/target/release/user-rust 2>&1 >/dev/null | wc -l`
 - `$ strace ./user-pure 2>&1 >/dev/null | wc -l`

@@ -19,7 +19,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/fs.h>
 #include <net/sock.h>
 #include <net/genetlink.h>
 #include <linux/netlink.h>
@@ -39,6 +38,7 @@ MODULE_DESCRIPTION(
 /* attribute policy: defines which attribute has which type (e.g int, char * etc)
  * possible values defined in net/netlink.h 
  */
+// TODO where/how is this actually validated?
 static struct nla_policy gnl_foobar_xmpl_policy[GNL_FOOBAR_XMPL_A_MAX + 1] = {
     [GNL_FOOBAR_XMPL_A_MSG] = {.type = NLA_NUL_STRING},
 };
@@ -72,7 +72,7 @@ static struct genl_family gnl_foobar_xmpl_family = {
 };
 
 // Callback function if a message with command GNL_FOOBAR_XMPL_C_ECHO was received
-int gnl_foobar_xmpl_cb_echo(struct sk_buff *sender_skb, struct genl_info *info)
+int gnl_foobar_xmpl_cb_echo(struct sk_buff *_unused_sender_skb, struct genl_info *info)
 {    
     struct nlattr *na;
     struct sk_buff *reply_skb;

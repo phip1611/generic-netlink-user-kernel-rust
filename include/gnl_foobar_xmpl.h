@@ -38,7 +38,9 @@
  * GNl: Generic Netlink
  */
 enum GNlFoobarXmplAttribute {
-    GNL_FOOBAR_XMPL_A_UNSPEC, // 0 is never used; first real attribute is 1
+    // 0 is never used; first real attribute is 1
+    GNL_FOOBAR_XMPL_A_UNSPEC,
+    // We expect a MSG to be a null-terminated C-string.
     GNL_FOOBAR_XMPL_A_MSG,
     __GNL_FOOBAR_XMPL_A_MAX,
 };
@@ -55,7 +57,8 @@ enum GNlFoobarXmplAttribute {
  */
 enum GNlFoobarXmplCommand {
     GNL_FOOBAR_XMPL_C_UNSPEC, // looks like the 0 entry must always be unused; first real command starts at 1
-    // Receives a message (null terminated string) and returns it.
+    // When this command is received, we expect the attribute `GNlFoobarXmplAttribute::GNL_FOOBAR_XMPL_A_MSG` to
+    // be present in the Generic Netlink message.
     GNL_FOOBAR_XMPL_C_ECHO,
     __GNL_FOOBAR_XMPL_C_MAX,
 };

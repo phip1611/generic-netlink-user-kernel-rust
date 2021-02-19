@@ -50,6 +50,8 @@ neli::impl_var!(
     NlFoobarXmplOperation,
     u8,
     Unspec => 0,
+    // When this command is received, we expect the attribute `GNlFoobarXmplAttribute::GNL_FOOBAR_XMPL_A_MSG` to
+    // be present in the Generic Netlink message.
     Echo => 1
 );
 impl neli::consts::genl::Cmd for NlFoobarXmplOperation {}
@@ -62,6 +64,7 @@ neli::impl_var!(
     NlFoobarXmplAttribute,
     u16,
     Unspec => 0,
+    // We expect a MSG to be a null-terminated C-string.
     Msg => 1
 );
 impl neli::consts::genl::NlAttrType for NlFoobarXmplAttribute {}

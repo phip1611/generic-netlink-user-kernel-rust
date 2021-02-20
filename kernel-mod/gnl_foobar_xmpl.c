@@ -174,7 +174,7 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
  * in `gnl_foobar_xmpl_ops[].validate`.
  * See https://elixir.bootlin.com/linux/v5.11/source/net/netlink/genetlink.c#L717
  */
-static struct nla_policy gnl_foobar_xmpl_policy[GNL_FOOBAR_XMPL_COMMAND_ENUM_LEN] = {
+static struct nla_policy gnl_foobar_xmpl_policy[GNL_FOOBAR_XMPL_ATTRIBUTE_ENUM_LEN] = {
         // In case you are seeing this syntax for the first time (I also learned this just after a few years of
         // coding with C myself): The following static array initiations are equivalent:
         // `int a[2] = {1, 2}` <==> `int a[2] = {[0] => 1, [1] => 2}`.
@@ -208,7 +208,7 @@ static struct genl_family gnl_foobar_xmpl_family = {
         // corresponding ".ops"-field is set accordingly.
         .policy = gnl_foobar_xmpl_policy,
         // Number of attributes / bounds check for policy (array length)
-        .maxattr = GNL_FOOBAR_XMPL_ATTRIBUTE_COUNT,
+        .maxattr = GNL_FOOBAR_XMPL_ATTRIBUTE_ENUM_LEN,
         // Owning Kernel module of the Netlink family we register.
         .module = THIS_MODULE,
 

@@ -19,7 +19,7 @@ add_definitions(-D__KERNEL__ -DMODULE)
 # this is independent from the actual kernel object that is built
 add_executable(dummy
         # add all *.h and *.c files here that # CLion should cover
-        gnl_foobar_xmpl-km.c
+        gnl_foobar_xmpl.c
 )
 
 # CLion IDE will find symbols from <linux/*>

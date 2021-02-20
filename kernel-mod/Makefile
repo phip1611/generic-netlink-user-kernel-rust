@@ -1,6 +1,7 @@
-# this builds "generic-netlink-demo-km.ko" from "generic-netlink-demo-km.c"
-# that's the way to build linux kernel modules
-obj-m = gnl_foobar_xmpl-km.o
+# This Makefile builds "gnl_foobar_xmpl.ko" from "gnl_foobar_xmpl.c".
+# That's the way to build Linux kernel modules (out of tree).
+
+obj-m = gnl_foobar_xmpl.o
 
 # add our custom header file
 EXTRA_CFLAGS=-I$(PWD)/../include/

@@ -5,7 +5,8 @@ cd ..
 # rust user program:
 # should communicate with kernel module via netlink 
 cd user-rust
-cargo run
+# main binary
+cargo run --bin echo
 cd ..
 
 # c user program:
@@ -26,4 +27,4 @@ echo "output of kernel log:"
 sudo dmesg
 
 # unload it at the end
-sudo rmmod gnl_foobar_xmpl-km
+sudo rmmod gnl_foobar_xmpl

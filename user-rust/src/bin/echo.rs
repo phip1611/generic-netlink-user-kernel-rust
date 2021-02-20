@@ -34,37 +34,10 @@ use neli::{
     utils::U32Bitmask,
 };
 use std::process;
-use std::process::exit;
-
-/// Name of the Netlink family registered via Generic Netlink
-const FAMILY_NAME: &str = "gnl_foobar_xmpl";
+use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplOperation};
 
 /// Data we want to send to kernel.
 const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
-
-// Implements the necessary trait for the "neli" lib on an enum called "NlFoobarXmplOperation".
-// NlFoobarXmplOperation corresponds to "enum GNlFoobarXmplCommand" in kernel module C code.
-// Describes what callback function shall be invoked in the linux kernel module.
-// This is for the "cmd" field in Generic Netlink header.
-neli::impl_var!(
-    NlFoobarXmplOperation,
-    u8,
-    Unspec => 0,
-    Echo => 1
-);
-impl neli::consts::genl::Cmd for NlFoobarXmplOperation {}
-
-// Implements the necessary trait for the "neli" lib on an enum called "NlFoobarXmplAttribute".
-// NlFoobarXmplAttribute corresponds to "enum NlFoobarXmplAttribute" in kernel module C code.
-// Describes the value type to data mappings inside the generic netlink packet payload.
-// This is for the Netlink Attributes (the actual payload) we want to send.
-neli::impl_var!(
-    NlFoobarXmplAttribute,
-    u16,
-    Unspec => 0,
-    Msg => 1
-);
-impl neli::consts::genl::NlAttrType for NlFoobarXmplAttribute {}
 
 fn main() {
     let mut sock = NlSocketHandle::connect(
@@ -86,7 +59,7 @@ fn main() {
             );
             // exit without error in order for Continuous Integration and automatic testing not to fail
             // when the kernel module is not loaded
-            exit(0);
+            return;
         }
     }
 
@@ -122,13 +95,15 @@ fn main() {
     let nlmsghdr = Nlmsghdr::new(
         None,
         family_id,
-        // You can use flags in an application specific way (e.g. ACK flag). It is up to you
-        // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
-        // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
-        // in your Kernel module. This might result in a deadlock on the socket if an expected
-        // reply you are waiting for in a blocking way is never received.
+        // You can use flags in an application specific way, e.g. NLM_F_CREATE or NLM_F_EXCL.
+        // Some flags have pre-defined functionality, like NLM_F_DUMP or NLM_F_ACK (Netlink will
+        // do actions before your callback in the kernel can start its processing). You can see
+        // some examples in https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c
+        //
+        // NLM_F_REQUEST is REQUIRED for kernel requests, otherwise the packet is rejected!
         // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
         NlmFFlags::new(&[NlmF::Request]),
+
         // It is up to you if you want to split a data transfer into multiple sequences. (application specific)
         None,
         // Port ID. Not necessarily the process id of the current process. This field

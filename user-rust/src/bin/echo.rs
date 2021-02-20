@@ -95,11 +95,12 @@ fn main() {
     let nlmsghdr = Nlmsghdr::new(
         None,
         family_id,
-        // You can use flags in an application specific way (e.g. ACK flag). It is up to you
-        // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
-        // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
-        // in your Kernel module. This might result in a deadlock on the socket if an expected
-        // reply you are waiting for in a blocking way is never received.
+        // You can use flags in an application specific way, e.g. NLM_F_CREATE or NLM_F_EXCL.
+        // Some flags have pre-defined functionality, like NLM_F_DUMP or NLM_F_ACK (Netlink will
+        // do actions before your callback in the kernel can start its processing). You can see
+        // some examples in https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c
+        //
+        // NLM_F_REQUEST is REQUIRED for kernel requests, otherwise the packet is rejected!
         // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
         NlmFFlags::new(&[NlmF::Request]),
 

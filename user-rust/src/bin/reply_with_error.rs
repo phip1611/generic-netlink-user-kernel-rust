@@ -71,7 +71,7 @@ fn main() {
     let nlmsghdr = Nlmsghdr::new(
         None,
         family_id,
-        NlmFFlags::new(&[NlmF::Request, NlmF::Ack, NlmF::Echo]),
+        NlmFFlags::new(&[NlmF::Request]),
         None,
         Some(process::id()),
         NlPayload::Payload(gnmsghdr),

@@ -11,7 +11,9 @@ kernel module and echo'ed back via Netlink.
 
 This repository consists of a Linux Kernel Module (**developed with Linux 5.4**), that is written in C, and three 
 **independent** userland components, that all act as standalone binaries and talk to the kernel module via 
-Netlink.
+Netlink. This tutorial covers Netlink topics like **validation**, **error reporting** (NMLSG_ERROR responses) as well as
+**regular data transfer**. The code is well and intensively documented, especially the kernel module. You can use this
+code as a starter template for own kernel modules with custom Generic Netlink families.
 
 The (standalone, independent) userland components are:
 1) a Rust program using [neli](https://crates.io/crate/neli) as abstraction/library for (Generic) Netlink
@@ -19,7 +21,8 @@ The (standalone, independent) userland components are:
 3) a pure C program using raw sockets and no library for abstraction _(originally not my work; see below - but I 
    adjusted some parts)_
 
-*The pure C program (3) code is inspired, or in fact a copy, of the code on [electronicsfaq.com](http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html) by (I don't know the author but from the comments I guess) **Anurag Chugh** 
+*The pure C program (3) code is inspired, or in fact a copy, of the code on [electronicsfaq.com](http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html)
+by (I don't know the author but from the comments I guess) **Anurag Chugh** 
 ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)).*
 
 ## Netlink vs Generic Netlink
@@ -82,9 +85,9 @@ output of kernel log:
 
 ## Measurement and comparison the userland components (abstractions cost)
 I measured the average time in all three userland components for establishing a Netlink connection,
-building the message (payload), sending it to the kernel, and receiving the reply all together. I ran every user 
-component in release mode (optimized) and took the measurements inside the code. These are the average
-durations in microseconds. I did 100,000 iterations for each measurement.
+building the message (payload), sending the ECHO request to the kernel, and receiving the reply all together.
+I ran every user component in release mode (optimized) and took the measurements inside the code. These are the
+average durations in microseconds. I did 100,000 iterations for each measurement.
 
 | User Rust (`neli`) | User C (Pure) | User C (`libnl`) |
 |------------------|---------------|----------------|
@@ -103,11 +106,16 @@ again and just did a single run. I executed the following statements which resul
 |--------------------|---------------|----------------|
 |       108 syscalls |   45 syscalls |   89 syscalls |
 
-Look into the [measurements/](https://github.com/phip1611/generic-netlink-user-kernel-rust/tree/main/measurements) directory of this repository, you can find the traces there. I didn't dived 
-in deeper but you can clearly see that libnl and neli results in a lot more syscalls which explains the 
-slower result.
+Look into the [measurements/](https://github.com/phip1611/generic-netlink-user-kernel-rust/tree/main/measurements) 
+directory of this repository, you can find the traces there. I didn't dived in deeper but you can clearly see that 
+`libnl` and `neli` results in a lot more syscalls which explains the slower result.
 
 ## Trivia
 I had to figure this out for an uni project and it was quite tough in the beginning, so I'd like to
-share my findings with the open source world! Netlink documentation is not good (especially in the 
-kernel) and perhaps not all my information are right. I just want to show what worked for me.
+share my findings with the open source world! Netlink documentation and tutorial across the web are not good
+and not centralized, you have to look up many things by yourself ad different sources. Perhaps not all my 
+information are 100% right, but I want to share what works for me. I hope I can help you :)
+If so, let me know on Twitter ([@phip1611](https://twitter.com/phip1611)).
+
+## Additional resources
+- [Generic Netlink HOW-TO based on Jamal's original doc](https://lwn.net/Articles/208755/)

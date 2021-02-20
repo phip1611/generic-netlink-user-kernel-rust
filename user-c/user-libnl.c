@@ -36,7 +36,7 @@
 
 // data/vars/enums/properties that describes our protocol that we implement
 // on top of generic netlink (like functions we want to trigger on the receiving side)
-#include "gnl_foobar_xmpl.h"
+#include "gnl_foobar_xmpl_prop.h"
 
 #define MESSAGE_TO_KERNEL "Hello World from Userland with libnl & libnl-genl"
 
@@ -53,10 +53,10 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
 
     // array that is a mapping from received attribute to actual data or NULL
     // (we can only send an specific attribute once per msg)
-    struct nlattr * tb_msg[GNL_FOOBAR_XMPL_A_MAX + 1];
+    struct nlattr * tb_msg[GNL_FOOBAR_XMPL_ATTRIBUTE_ENUM_LEN];
 
     // nlmsg_type is either family id number for "good" messages
-    // or NLMSG_ERROR for bad massages.
+    // or NLMSG_ERROR for error messages.
     if (ret_hdr->nlmsg_type == NLMSG_ERROR) {
         fprintf(stderr, LOG_PREFIX "Received NLMSG_ERROR message!\n");
         return NL_STOP;
@@ -66,18 +66,20 @@ int nl_callback(struct nl_msg* recv_msg, void* arg)
     struct genlmsghdr *gnlh = (struct genlmsghdr*) nlmsg_data(ret_hdr);
 
     // Create attribute index based on a stream of attributes.
-    nla_parse(tb_msg, // Index array to be filled (maxtype+1 elements)
-              GNL_FOOBAR_XMPL_A_MAX, // Maximum attribute type expected and accepted.
+    nla_parse(tb_msg, // Index array to be filled
+              GNL_FOOBAR_XMPL_ATTRIBUTE_ENUM_LEN, // length of array tb_msg
               genlmsg_attrdata(gnlh, 0), // Head of attribute stream
               genlmsg_attrlen(gnlh, 0), // 	Length of attribute stream
               NULL // GNlFoobarXmplAttribute validation policy
     );
 
-    // check if a msg was actually received
+    // check if a msg attribute was actually received
     if (tb_msg[GNL_FOOBAR_XMPL_A_MSG]) {
         // parse it as string
         char * payload_msg = nla_get_string(tb_msg[GNL_FOOBAR_XMPL_A_MSG]);
-        printf(LOG_PREFIX "Kernel replied: %s\n", payload_msg);
+        printf(LOG_PREFIX "Kernel replied: '%s'\n", payload_msg);
+    } else {
+        fprintf(stderr, LOG_PREFIX "Attribute GNL_FOOBAR_XMPL_A_MSG is missing\n");
     }
 
     return NL_OK;
@@ -127,30 +129,42 @@ int main(void) {
     // nl message with default size
     struct nl_msg * msg = nlmsg_alloc();
     genlmsg_put(
-            msg,  // memory buffer
-            // Port ID. Not necessarily the process id of the current process. This field
-            // could be used to identify different points or threads inside your application
-            // that send data to the kernel. This has nothing to do with "routing" the packet to
-            // the kernel, because this is done by the socket itself
+            /* msg buffer */
+            msg,
+            /*
+             * Port ID. Not necessarily the process id of the current process. This field
+             * could be used to identify different points or threads inside your application
+             * that send data to the kernel. This has nothing to do with "routing" the packet to
+             * the kernel, because this is done by the socket itself
+             */
             NL_AUTO_PORT, // auto assign current pid
-            // It is up to you if you want to split a data transfer into multiple sequences. (application specific)
+            /* It is up to you if you want to split a data transfer into multiple sequences. (application specific) */
             NL_AUTO_SEQ, // begin wit seq number 0
-            family_id, // family id
+            /* family id */
+            family_id,
+            /* length of additional user header (application specific) */
             0, // no additional user header
-            // You can use flags in an application specific way (e.g. ACK flag). It is up to you
-            // if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
-            // otherwise the Kernel doesn't route the packet to the right Netlink callback handler
-            // in your Kernel module. This might result in a deadlock on the socket if an expected
-            // reply you are waiting for in a blocking way is never received.
-            // Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
-            //
-            // libnl specific: always adds NLM_F_REQUEST
-            // see <libnl>/nl.c#nl_complete_msg()
+            /*
+             * You can use flags in an application specific way (e.g. ACK flag). It is up to you
+             * if you check against flags in your Kernel module. It is required to add NLM_F_REQUEST,
+             * otherwise the Kernel doesn't route the packet to the right Netlink callback handler
+             * in your Kernel module. This might result in a deadlock on the socket if an expected
+             * reply you are waiting for in a blocking way is never received.
+             * Kernel reference: https://elixir.bootlin.com/linux/v5.10.16/source/net/netlink/af_netlink.c#L2487
+             *
+             * libnl specific: always adds NLM_F_REQUEST
+             * see <libnl>/nl.c#nl_complete_msg()
+             *
+             *  if you add "NLM_F_DUMP" flag, the .dumpit callback will be invoked in the kernel
+             */
             NLM_F_REQUEST,
-            // cmd in Generic Netlink Header
-            GNL_FOOBAR_XMPL_C_ECHO, // the command we want to trigger on the receiving side
-            // You can evolve your application over time using different versions or ignore it.
-            // Application specific; receiver can check this value and to specific logic
+            /* cmd in Generic Netlink Header */
+            // GNL_FOOBAR_XMPL_C_REPLY_WITH_NLMSG_ERR, // if we want to receive NLMSG_ERR response
+            GNL_FOOBAR_XMPL_C_ECHO, // the callback we want to trigger on the receiving side
+            /*
+             * You can evolve your application over time using different versions or ignore it.
+             * Application specific; receiver can check this value and to specific logic
+             */
             1
     );
 

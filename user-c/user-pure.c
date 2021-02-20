@@ -17,7 +17,7 @@
 
 // data/vars/enums/properties that describes our protocol that we implement
 // on top of generic netlink (like functions we want to trigger on the receiving side)
-#include "gnl_foobar_xmpl.h"
+#include "gnl_foobar_xmpl_prop.h"
 
 #define LOG_PREFIX "[User-C-Pure] "
 
@@ -149,6 +149,8 @@ int main(void)
     // This is NOT the property for proper "routing" of the netlink message (that is located in the socket struct).
     // This is family id for "good" messages or NLMSG_ERROR (0x2) for error messages
     nl_request_msg.n.nlmsg_type = nl_family_id;
+
+    // if you add "NLM_F_DUMP" flag, the .dumpit callback will be invoked in the kernel
     nl_request_msg.n.nlmsg_flags = NLM_F_REQUEST;
     nl_request_msg.n.nlmsg_seq = 0;
     nl_request_msg.n.nlmsg_pid = getpid();
@@ -197,7 +199,7 @@ int main(void)
     // Parse the reply message
     nl_rxtx_length = GENLMSG_PAYLOAD(&nl_response_msg.n);
     nl_na = (struct nlattr *)GENLMSG_DATA(&nl_response_msg);
-    printf(LOG_PREFIX "Kernel replied: %s\n", (char *)NLA_DATA(nl_na));
+    printf(LOG_PREFIX "Kernel replied: '%s'\n", (char *)NLA_DATA(nl_na));
 
     // Step 5. Close the socket and quit
     close(nl_fd);

@@ -21,6 +21,9 @@
 //! Userland component written in Rust, that uses neli to talk to a custom Netlink
 //! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
 //! kernel module must be loaded first. Otherwise the family doesn't exist.
+//!
+//! This examples provokes an error response from the kernel.
+//! TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!
 
 use neli::err::NlError;
 use neli::{
@@ -38,6 +41,8 @@ use std::process;
 use user_rust::{NlFoobarXmplAttribute, NlFoobarXmplOperation, FAMILY_NAME};
 
 fn main() {
+    println!("TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!");
+
     let mut sock = NlSocketHandle::connect(
         NlFamily::Generic,
         // 0 is pid of kernel -> socket is connected to kernel
@@ -79,6 +84,7 @@ fn main() {
 
     sock.send(nlmsghdr).expect("Send must work");
 
+    // TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!
     let res: Result<
         Option<Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>>>,
         NlError,

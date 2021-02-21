@@ -25,6 +25,13 @@ The (standalone, independent) userland components are:
 by (I don't know the author but from the comments I guess) **Anurag Chugh** 
 ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)).*
 
+## TL;DR; Where To Start?
+Check out the code in `kernel-mod/gnl_foobar_xmpl.c`. Build it and load the kernel module. Afterwards you can run 
+several userland components from this repository against it. 
+* `$ cargo run --bin echo`
+* `$ cargo run --bin echo_with_dump_flag`
+* `$ cargo run --bin reply_with_error`
+
 ## Netlink vs Generic Netlink
 Netlink knows about *families* and each family has an ID statically assigned in the Kernel code, 
 see `<linux/netlink.h>`. Generic Netlink is one of these families and it can be used to create new families

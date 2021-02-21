@@ -31,11 +31,13 @@
  * "Generic Netlink HOW-TO based on Jamal's original doc" https://lwn.net/Articles/208755/
  */
 
+// basic definitions for kernel module development
 #include <linux/module.h>
-#include <net/sock.h>
+// definitions for generic netlink families, policies etc;
+// transitive dependencies for basic netlink, sockets etc
 #include <net/genetlink.h>
-#include <linux/netlink.h>
-#include <linux/skbuff.h>
+// required for locking inside the .dumpit callback demonstration
+#include <linux/mutex.h>
 
 // data/vars/enums/properties that describes our protocol that we implement
 // on top of generic netlink (like functions we want to trigger on the receiving side)
@@ -64,11 +66,40 @@ MODULE_DESCRIPTION(
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 /* ########################################################################### */
 
+/**
+ * Data structure required for our .dumpit callback handler to
+ * know about the progress of an ongoing dump.
+ * See the dumpit callback handler how it is used.
+ */
+struct {
+    // from <linux/mutex.h>
+    /**
+     * Only one process is allowed per dump process. We need a lock for that.
+     */
+    struct mutex mtx;
+    /**
+     * Number that describes how many packets we need to send until we are done
+     * during an ongoing dumpit process. 0 = done.
+     */
+    int unsigned runs_to_go;
+    /**
+     * Number that describes how many packets per dump are sent in total.
+     * Constant per dump.
+     */
+    int unsigned total_runs;
+} dumpit_cb_progress_data;
+
 // Documentation is on the implementation of this function.
 int gnl_cb_doit_echo(struct sk_buff *sender_skb, struct genl_info *info);
 
 // Documentation is on the implementation of this function.
 int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_callback *cb);
+
+// Documentation is on the implementation of this function.
+int	gnl_cb_dumpit_before_generic(struct netlink_callback *cb);
+
+// Documentation is on the implementation of this function.
+int	gnl_cb_dumpit_after_generic(struct netlink_callback *cb);
 
 // Documentation is on the implementation of this function.
 int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_info *info);
@@ -119,6 +150,9 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                  * The 'dumpit' callback is invoked when a Generic Netlink message is received
                  * with the NLM_F_DUMP flag set.
                  *
+                 * A dump can be understand as a "GET ALL DATA OF THE GIVEN ENTITY", i.e.
+                 * the userland can receive as long as the .dumpit callback returns data.
+                 *
                  * .dumpit is not mandatory, but either it or .doit must be provided, see
                  * https://elixir.bootlin.com/linux/v5.11/source/net/netlink/genetlink.c#L367
                  *
@@ -146,10 +180,10 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                  * https://elixir.bootlin.com/linux/v5.11/source/net/netlink/genetlink.c#L780
                  */
                 .dumpit = gnl_cb_dumpit_generic,
-                /* we don't need it in this example: completion callback for dumps */
-                .done = NULL,
-                /* we don't need it in this example: start callback for dumps */
-                .start = NULL,
+                /* Start callback for dumps. Can be used to lock data structures. */
+                .start = gnl_cb_dumpit_before_generic,
+                /* Completion callback for dumps. Can be used for cleanup after a dump and releasing locks. */
+                .done = gnl_cb_dumpit_after_generic,
                 /*
                  0 (= "validate strictly") or value `enum genl_validate_flags`
                  * see: https://elixir.bootlin.com/linux/v5.11/source/include/net/genetlink.h#L108
@@ -161,9 +195,12 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                 .flags = 0,
                 .internal_flags = 0,
                 .doit = gnl_cb_doit_reply_with_nlmsg_err,
+                // in a real application you probably have different .dumpit handlers per operation/command
                 .dumpit = gnl_cb_dumpit_generic,
-                .done = NULL,
-                .start = NULL,
+                // in a real application you probably have different .start handlers per operation/command
+                .start = gnl_cb_dumpit_before_generic,
+                // in a real application you probably have different .done handlers per operation/command
+                .done = gnl_cb_dumpit_after_generic,
                 .validate = 0,
         }
 };
@@ -339,18 +376,24 @@ int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_call
                                                 "brought to you by .dumpit callback :)";
     pr_info("Called %s()\n", __func__);
 
-    // TODO this gets called once per request if flag NLM_F_DUMP is provided and afterwards
-    //  also each time per receive call (at least from rust/neli userland component,
-    //  if you try to receive twice for example).
-    //  I have NO idea why this happens and how applications can benefit from this behaviour.
+    if (dumpit_cb_progress_data.runs_to_go == 0) {
+        pr_info("no more data to send in dumpit cb\n");
+        // mark that dump is done;
+        return 0;
+    } else {
+        dumpit_cb_progress_data.runs_to_go--;
+        pr_info("%s: %d more runs to do\n", __func__, dumpit_cb_progress_data.runs_to_go);
+    }
 
     msg_head = genlmsg_put(pre_allocated_skb, // buffer for netlink message: struct sk_buff *
             // According to my findings: this is not used for routing
             // This can be used in an application specific way to target
             // different endpoints within the same user application
             // but general rule: just put sender port id here
-                           0, // sending port (not process) id: int
-                           0,  // sequence number: int (might be used by receiver, but not mandatory)
+                           cb->nlh->nlmsg_pid, // sending port (not process) id: int
+            // sequence number: int (might be used by receiver, but not mandatory)
+            // sequence 0, 1, 2...
+                           dumpit_cb_progress_data.total_runs - dumpit_cb_progress_data.runs_to_go - 1,
                            &gnl_foobar_xmpl_family, // struct genl_family *
                            0, // flags: int (for netlink header); we don't check them in the userland; application specific
             // this way we can trigger a specific command/callback on the receiving side or imply
@@ -403,6 +446,30 @@ int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_inf
     return -EINVAL;
 }
 
+int	gnl_cb_dumpit_before_generic(struct netlink_callback *cb) {
+    int ret;
+    static int unsigned const dump_runs = 3;
+    pr_info("%s: dump started. acquire lock. initialize dump runs_to_go (number of receives userland can make) to %d runs\n", __func__, dump_runs);
+    // Lock the mutex like mutex_lock(), and return 0 if the mutex has been acquired or sleep until the mutex becomes available
+    // If a signal arrives while waiting for the lock then this function returns -EINTR.
+    ret = mutex_lock_interruptible(&dumpit_cb_progress_data.mtx);
+    if (ret != 0) {
+        pr_err("Failed to get lock!\n");
+        return ret;
+    }
+    dumpit_cb_progress_data.total_runs = dump_runs;
+    dumpit_cb_progress_data.runs_to_go = dump_runs;
+    return 0;
+
+}
+
+// Documentation is on the implementation of this function.
+int	gnl_cb_dumpit_after_generic(struct netlink_callback *cb) {
+    pr_info("%s: dump done. release lock\n", __func__);
+    mutex_unlock(&dumpit_cb_progress_data.mtx);
+    return 0;
+}
+
 static int __init gnl_foobar_xmpl_module_init(void) {
     int rc;
     pr_info("Generic Netlink Example Module inserted.\n");
@@ -416,6 +483,9 @@ static int __init gnl_foobar_xmpl_module_init(void) {
     } else {
         pr_info("successfully registered custom Netlink family '" FAMILY_NAME "' using Generic Netlink.\n");
     }
+
+    mutex_init(&dumpit_cb_progress_data.mtx);
+
     return 0;
 }
 
@@ -431,6 +501,8 @@ static void __exit gnl_foobar_xmpl_module_exit(void) {
     } else {
         pr_info("successfully unregistered custom Netlink family '" FAMILY_NAME "' using Generic Netlink.\n");
     }
+
+    mutex_destroy(&dumpit_cb_progress_data.mtx);
 }
 
 module_init(gnl_foobar_xmpl_module_init);

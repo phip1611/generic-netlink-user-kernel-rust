@@ -21,6 +21,13 @@
 //! The fully documented binary is `src/bin/echo.rs`. In this file only changes, according
 //! to the description of the filename, are documented.
 //!
+//! The dump example uses the NLM_F_DUMP flag. A dump can be understand as a
+//! "GET ALL DATA OF THE GIVEN ENTITY", i.e. the userland can receive as long as the
+//! .dumpit callback returns data. For the sake of simplicity the kernel returns
+//! exactly 3 messages (hard coded) during a dump, before the next .dumpit can start.
+//! In this example we don't need to send a message that gets echoed back. We get some
+//! dummy data that simulates a real world application dump (= give me all your data).
+//!
 //! Userland component written in Rust, that uses neli to talk to a custom Netlink
 //! family via Generic Netlink. The family is called "gnl_foobar_xmpl" and the
 //! kernel module must be loaded first. Otherwise the family doesn't exist.
@@ -38,6 +45,8 @@ use neli::{
 };
 use std::process;
 use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplOperation};
+use neli::err::NlError;
+use neli::consts::nl::Nlmsg;
 
 /// Data we want to send to kernel.
 const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
@@ -48,8 +57,7 @@ fn main() {
         // 0 is pid of kernel -> socket is connected to kernel
         Some(0),
         U32Bitmask::empty(),
-    )
-        .unwrap();
+    ).unwrap();
 
     let family_id;
     let res = sock.resolve_genl_family(FAMILY_NAME);
@@ -68,6 +76,34 @@ fn main() {
 
     println!("[User-Rust]: Generic family number is {}", family_id);
 
+    // in `$ sudo dmesg` you should see that this results in 2 .dumpit runs.
+    for _ in 0..2 {
+        let nlmsghdr = build_msg(family_id);
+        println!("[User-Rust]: Requested DUMP via netlink");
+
+        sock.send(nlmsghdr).expect("Send must work");
+
+        // Because we hard coded into the kernel that we want to receive 3 entities during a dump call
+        // we do this 3 times. Why 3? For the sake of simplicity and to show you the basic principle
+        // behind it.
+        for _ in 0..3 {
+            let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> =
+                sock.recv().expect("Should receive a message").unwrap();
+
+            let attr_handle = res.get_payload().unwrap().get_attr_handle();
+            let received = attr_handle
+                .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
+                .unwrap();
+            println!("[User-Rust]: Received from kernel from .dumpit callback: [seq={}] '{}'", res.nl_seq, received);
+        }
+
+        let done_msg: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> = sock.recv().expect("Should receive message").unwrap();
+        assert_eq!(u16::from(Nlmsg::Done), done_msg.nl_type, "Must receive NLMSG_DONE response" /* 3 is NLMSG_DONE */);
+    }
+
+}
+
+fn build_msg(family_id: u16) -> Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> {
     let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
         Nlattr::new(
@@ -97,16 +133,5 @@ fn main() {
         NlPayload::Payload(gnmsghdr),
     );
 
-    println!("[User-Rust]: Sending '{}' via netlink", ECHO_MSG);
-
-    sock.send(nlmsghdr).expect("Send must work");
-
-    let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> =
-        sock.recv().expect("Should receive a message").unwrap();
-
-    let attr_handle = res.get_payload().unwrap().get_attr_handle();
-    let received = attr_handle
-        .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
-        .unwrap();
-    println!("[User-Rust]: Received from kernel: '{}'", received);
+    nlmsghdr
 }

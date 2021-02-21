@@ -11,9 +11,10 @@ kernel module and echo'ed back via Netlink.
 
 This repository consists of a Linux Kernel Module (**developed with Linux 5.4**), that is written in C, and three 
 **independent** userland components, that all act as standalone binaries and talk to the kernel module via 
-Netlink. This tutorial covers Netlink topics like **validation**, **error reporting** (NMLSG_ERROR responses) as well as
-**regular data transfer**. The code is well and intensively documented, especially the kernel module. You can use this
-code as a starter template for own kernel modules with custom Generic Netlink families.
+Netlink. This tutorial covers Netlink topics like **validation**, **error reporting** (`NMLSG_ERROR` responses),
+dump calls (with `NMLSG_DONE` responses) as well as **regular data transfer**. The code is well and intensively 
+documented, especially the kernel module. You can use this code as a starter template for own kernel modules with 
+custom Generic Netlink families.
 
 The (standalone, independent) userland components are:
 1) a Rust program using [neli](https://crates.io/crate/neli) as abstraction/library for (Generic) Netlink

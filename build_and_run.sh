@@ -26,5 +26,12 @@ echo
 echo "output of kernel log:"
 sudo dmesg
 
+echo "----------------------- more examples"
+cd user-rust
+# main binary
+cargo run --bin echo_with_dump_flag
+cargo run --bin reply_with_error
+cd ..
+
 # unload it at the end
-sudo rmmod gnl_foobar_xmpl
+# sudo rmmod gnl_foobar_xmpl

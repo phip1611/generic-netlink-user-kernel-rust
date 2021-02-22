@@ -76,9 +76,12 @@ enum GNL_FOOBAR_XMPL_COMMAND {
     // first real command is "1" (>0)
     /**
      * When this command is received, we expect the attribute `GNL_FOOBAR_XMPL_ATTRIBUTE::GNL_FOOBAR_XMPL_A_MSG` to
-     * be present in the Generic Netlink message.
+     * be present in the Generic Netlink request message. The kernel reads the message from the packet and
+     * creates a new Generic Netlink response message with an corresponding attribute/payload.
+     *
+     * This command/signaling mechanism is independent of the Netlink flag `NLM_F_ECHO (0x08)`.
      */
-    GNL_FOOBAR_XMPL_C_ECHO,
+    GNL_FOOBAR_XMPL_C_ECHO_MSG,
 
     /**
      * Provokes a NLMSG_ERR answer to this request as described in netlink manpage

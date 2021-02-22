@@ -31,17 +31,21 @@ use neli::{
         nl::{NlmF, NlmFFlags},
         socket::NlFamily,
     },
-    genl::{Genlmsghdr, Nlattr},
+    genl::{Genlmsghdr},
     nl::{NlPayload, Nlmsghdr},
     socket::NlSocketHandle,
     types::{Buffer, GenlBuffer},
     utils::U32Bitmask,
 };
 use std::process;
-use user_rust::{NlFoobarXmplAttribute, NlFoobarXmplOperation, FAMILY_NAME};
+use user_rust::{NlFoobarXmplAttribute, NlFoobarXmplCommand, FAMILY_NAME};
 
 fn main() {
-    println!("TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!");
+    println!("Rust-Binary: reply_with_error");
+
+    eprintln!("##  ATTENTION ###################################################################################");
+    eprintln!("TODO Rust error receiving fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!");
+    eprintln!("#################################################################################################");
 
     let mut sock = NlSocketHandle::connect(
         NlFamily::Generic,
@@ -66,10 +70,8 @@ fn main() {
         }
     }
 
-    println!("[User-Rust]: Generic family number is {}", family_id);
-
     let gnmsghdr = Genlmsghdr::new(
-        NlFoobarXmplOperation::ReplyWithNlmsgErr,
+        NlFoobarXmplCommand::ReplyWithNlmsgErr,
         1,
         GenlBuffer::<NlFoobarXmplAttribute, Buffer>::new(),
     );
@@ -86,7 +88,7 @@ fn main() {
 
     // TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!
     let res: Result<
-        Option<Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>>>,
+        Option<Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>>>,
         NlError,
     > = sock.recv();
     println!("{:#?}", res);

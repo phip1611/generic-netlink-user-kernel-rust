@@ -44,14 +44,15 @@ use neli::{
     utils::U32Bitmask,
 };
 use std::process;
-use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplOperation};
-use neli::err::NlError;
+use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplCommand};
 use neli::consts::nl::Nlmsg;
 
 /// Data we want to send to kernel.
 const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
 
 fn main() {
+    println!("Rust-Binary: echo_with_dump_flag");
+
     let mut sock = NlSocketHandle::connect(
         NlFamily::Generic,
         // 0 is pid of kernel -> socket is connected to kernel
@@ -74,8 +75,6 @@ fn main() {
         }
     }
 
-    println!("[User-Rust]: Generic family number is {}", family_id);
-
     // in `$ sudo dmesg` you should see that this results in 2 .dumpit runs.
     for _ in 0..2 {
         let nlmsghdr = build_msg(family_id);
@@ -87,7 +86,7 @@ fn main() {
         // we do this 3 times. Why 3? For the sake of simplicity and to show you the basic principle
         // behind it.
         for _ in 0..3 {
-            let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> =
+            let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>> =
                 sock.recv().expect("Should receive a message").unwrap();
 
             let attr_handle = res.get_payload().unwrap().get_attr_handle();
@@ -97,13 +96,13 @@ fn main() {
             println!("[User-Rust]: Received from kernel from .dumpit callback: [seq={}] '{}'", res.nl_seq, received);
         }
 
-        let done_msg: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> = sock.recv().expect("Should receive message").unwrap();
+        let done_msg: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>> = sock.recv().expect("Should receive message").unwrap();
         assert_eq!(u16::from(Nlmsg::Done), done_msg.nl_type, "Must receive NLMSG_DONE response" /* 3 is NLMSG_DONE */);
     }
 
 }
 
-fn build_msg(family_id: u16) -> Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> {
+fn build_msg(family_id: u16) -> Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>> {
     let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
         Nlattr::new(
@@ -116,8 +115,11 @@ fn build_msg(family_id: u16) -> Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, 
             .unwrap(),
     );
 
+    // In this DUMP flag example we use the EchoMsg command for the sake of simplicity but
+    // we don't actually put a MSG as payload into the request and expect an echo-reply from kernel.
+
     let gnmsghdr = Genlmsghdr::new(
-        NlFoobarXmplOperation::Echo,
+        NlFoobarXmplCommand::EchoMsg,
         1,
         attrs,
     );

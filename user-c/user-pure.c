@@ -244,7 +244,7 @@ int send_echo_msg_and_get_reply() {
     // the kernel, because this is done by the socket itself
     nl_request_msg.n.nlmsg_pid = getpid();
     // nl_request_msg.g.cmd = GNL_FOOBAR_XMPL_C_REPLY_WITH_NLMSG_ERR;
-    nl_request_msg.g.cmd = GNL_FOOBAR_XMPL_C_ECHO;
+    nl_request_msg.g.cmd = GNL_FOOBAR_XMPL_C_ECHO_MSG;
     // You can evolve your application over time using different versions or ignore it.
     // Application specific; receiver can check this value and do specific logic.
     nl_request_msg.g.version = 1; // app specific; we don't use this on the receiving side in our example

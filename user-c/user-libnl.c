@@ -161,7 +161,7 @@ int main(void) {
              */
             NLM_F_REQUEST,
             /* cmd in Generic Netlink Header */
-            GNL_FOOBAR_XMPL_C_ECHO, // the callback we want to trigger on the receiving side
+            GNL_FOOBAR_XMPL_C_ECHO_MSG, // the callback we want to trigger on the receiving side
             // GNL_FOOBAR_XMPL_C_REPLY_WITH_NLMSG_ERR, // if we want to receive NLMSG_ERR response
             /*
              * You can evolve your application over time using different versions or ignore it.

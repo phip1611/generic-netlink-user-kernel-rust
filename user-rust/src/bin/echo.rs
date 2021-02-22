@@ -34,12 +34,14 @@ use neli::{
     utils::U32Bitmask,
 };
 use std::process;
-use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplOperation};
+use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplCommand};
 
 /// Data we want to send to kernel.
 const ECHO_MSG: &str = "Some data that has `Nl` trait implemented, like &str";
 
 fn main() {
+    println!("Rust-Binary: echo");
+
     let mut sock = NlSocketHandle::connect(
         NlFamily::Generic,
         // 0 is pid of kernel -> socket is connected to kernel
@@ -65,7 +67,7 @@ fn main() {
 
     println!("[User-Rust]: Generic family number is {}", family_id);
 
-    // We want to send an Echo command
+    // We want to send an EchoMsg command
     // 1) prepare NlFoobarXmpl Attribute
     let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
@@ -83,7 +85,7 @@ fn main() {
     // 2) prepare Generic Netlink Header. The Generic Netlink Header contains the
     //    attributes (actual data) as payload.
     let gnmsghdr = Genlmsghdr::new(
-        NlFoobarXmplOperation::Echo,
+        NlFoobarXmplCommand::EchoMsg,
         // You can evolve your application over time using different versions or ignore it.
         // Application specific; receiver can check this value and to specific logic
         1,
@@ -120,7 +122,7 @@ fn main() {
     sock.send(nlmsghdr).expect("Send must work");
 
     // receive echo'ed message
-    let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplOperation, NlFoobarXmplAttribute>> =
+    let res: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>> =
         sock.recv().expect("Should receive a message").unwrap();
 
     /* USELESS, just note: this is always the case. Otherwise neli would have returned Error

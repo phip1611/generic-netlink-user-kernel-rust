@@ -90,16 +90,16 @@ struct {
 } dumpit_cb_progress_data;
 
 // Documentation is on the implementation of this function.
-int gnl_cb_doit_echo(struct sk_buff *sender_skb, struct genl_info *info);
+int gnl_cb_echo_doit(struct sk_buff *sender_skb, struct genl_info *info);
 
 // Documentation is on the implementation of this function.
-int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_callback *cb);
+int gnl_cb_echo_dumpit(struct sk_buff *pre_allocated_skb, struct netlink_callback *cb);
 
 // Documentation is on the implementation of this function.
-int	gnl_cb_dumpit_before_generic(struct netlink_callback *cb);
+int gnl_cb_echo_dumpit_before(struct netlink_callback *cb);
 
 // Documentation is on the implementation of this function.
-int	gnl_cb_dumpit_after_generic(struct netlink_callback *cb);
+int gnl_cb_echo_dumpit_before_after(struct netlink_callback *cb);
 
 // Documentation is on the implementation of this function.
 int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_info *info);
@@ -122,7 +122,7 @@ int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_inf
 struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
         {
                 /* The "cmd" field in `struct genlmsghdr` of received Generic Netlink message */
-                .cmd = GNL_FOOBAR_XMPL_C_ECHO,
+                .cmd = GNL_FOOBAR_XMPL_C_ECHO_MSG,
                 /* TODO Use case ? */
                 .flags = 0,
                 /* TODO Use case ? */
@@ -145,7 +145,7 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                  * in userland in the manpage: https://man7.org/linux/man-pages/man7/netlink.7.html
                  *
                  */
-                .doit = gnl_cb_doit_echo,
+                .doit = gnl_cb_echo_doit,
                 /* This callback is similar in use to the standard Netlink 'dumpit' callback.
                  * The 'dumpit' callback is invoked when a Generic Netlink message is received
                  * with the NLM_F_DUMP flag set.
@@ -179,11 +179,11 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                  * You can see the check for the NLM_F_DUMP-flag here:
                  * https://elixir.bootlin.com/linux/v5.11/source/net/netlink/genetlink.c#L780
                  */
-                .dumpit = gnl_cb_dumpit_generic,
+                .dumpit = gnl_cb_echo_dumpit,
                 /* Start callback for dumps. Can be used to lock data structures. */
-                .start = gnl_cb_dumpit_before_generic,
+                .start = gnl_cb_echo_dumpit_before,
                 /* Completion callback for dumps. Can be used for cleanup after a dump and releasing locks. */
-                .done = gnl_cb_dumpit_after_generic,
+                .done = gnl_cb_echo_dumpit_before_after,
                 /*
                  0 (= "validate strictly") or value `enum genl_validate_flags`
                  * see: https://elixir.bootlin.com/linux/v5.11/source/include/net/genetlink.h#L108
@@ -195,12 +195,13 @@ struct genl_ops gnl_foobar_xmpl_ops[GNL_FOOBAR_OPS_LEN] = {
                 .flags = 0,
                 .internal_flags = 0,
                 .doit = gnl_cb_doit_reply_with_nlmsg_err,
+                // .dumpit is not required, only optional; application specific/dependent on your use case
                 // in a real application you probably have different .dumpit handlers per operation/command
-                .dumpit = gnl_cb_dumpit_generic,
+                .dumpit = NULL,
                 // in a real application you probably have different .start handlers per operation/command
-                .start = gnl_cb_dumpit_before_generic,
+                .start = NULL,
                 // in a real application you probably have different .done handlers per operation/command
-                .done = gnl_cb_dumpit_after_generic,
+                .done = NULL,
                 .validate = 0,
         }
 };
@@ -268,14 +269,14 @@ static struct genl_family gnl_foobar_xmpl_family = {
  * Please look into the comments where this is used as ".doit" callback above in
  * `struct genl_ops gnl_foobar_xmpl_ops[]` for more information about ".doit" callbacks.
 */
-int gnl_cb_doit_echo(struct sk_buff *sender_skb, struct genl_info *info) {
+int gnl_cb_echo_doit(struct sk_buff *sender_skb, struct genl_info *info) {
     struct nlattr *na;
     struct sk_buff *reply_skb;
     int rc;
     void *msg_head;
     char *recv_msg;
 
-    pr_info("generic-netlink-demo-km: %s() invoked\n", __func__);
+    pr_info("%s() invoked\n", __func__);
 
     if (info == NULL) {
         // should never happen
@@ -331,7 +332,7 @@ int gnl_cb_doit_echo(struct sk_buff *sender_skb, struct genl_info *info) {
                            &gnl_foobar_xmpl_family, // struct genl_family *
                            0, // flags for Netlink header: int; application specific and not mandatory
                            // The command/operation (u8) from `enum GNL_FOOBAR_XMPL_COMMAND` for Generic Netlink header
-                           GNL_FOOBAR_XMPL_C_ECHO
+                           GNL_FOOBAR_XMPL_C_ECHO_MSG
     );
     if (msg_head == NULL) {
         rc = ENOMEM;
@@ -365,11 +366,20 @@ int gnl_cb_doit_echo(struct sk_buff *sender_skb, struct genl_info *info) {
 }
 
 /**
- * Generic ".dumpit"-callback function if a Generic Netlink with flag `NLM_F_DUMP` is received.
- * Please look into the comments where this is used as "..dumpit" callback above in
+ * ".dumpit"-callback function if a Generic Netlink with command ECHO_MSG and flag `NLM_F_DUMP` is received.
+ * Please look into the comments where this is used as ".dumpit" callback above in
  * `struct genl_ops gnl_foobar_xmpl_ops[]` for more information about ".dumpit" callbacks.
+ *
+ * A dump must be understand of "give me all data of a given entity"
+ * rather than a "dump of the netlink message itself" for debugging etc!
+ *
+ * This handler requires `gnl_cb_echo_dumpit_before` to run before a dump and `gnl_cb_echo_dumpit_after` after a dump.
+ *
+ * For the sake of simplicity, we use the ECHO_MSG command for the dump. In fact, we don't expect a
+ * MSG-Attribute here, unlike the regular ECHO_MSG handler. We reply with a dump of
+ * "all messages that we got" (application specific, hard coded in this example).
 */
-int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_callback *cb) {
+int gnl_cb_echo_dumpit(struct sk_buff *pre_allocated_skb, struct netlink_callback *cb) {
     void *msg_head;
     int ret;
     static const char HELLO_FROM_DUMPIT_MSG[] = "You set the flag NLM_F_DUMP; this message is "
@@ -398,7 +408,7 @@ int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_call
                            0, // flags: int (for netlink header); we don't check them in the userland; application specific
             // this way we can trigger a specific command/callback on the receiving side or imply
             // on which type of command we are currently answering; this is application specific
-                           GNL_FOOBAR_XMPL_C_ECHO // cmd: u8 (for generic netlink header);
+                           GNL_FOOBAR_XMPL_C_ECHO_MSG // cmd: u8 (for generic netlink header);
     );
     if (msg_head == NULL) {
         pr_info("An error occurred in %s(): genlmsg_put() failed\n", __func__);
@@ -425,8 +435,7 @@ int gnl_cb_dumpit_generic(struct sk_buff *pre_allocated_skb, struct netlink_call
  * `struct genl_ops gnl_foobar_xmpl_ops[]` for more information about ".doit" callbacks.
 */
 int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_info *info) {
-    pr_info("generic-netlink-demo-km: %s() invoked\n", __func__);
-    pr_info("flags: %x\n", info->nlhdr->nlmsg_flags);
+    pr_info("%s() invoked, a NLMSG_ERR response will be sent back\n", __func__);
 
     /*
      * Generic Netlink is smart enough and sends a NLMSG_ERR reply automatically as reply
@@ -446,7 +455,14 @@ int gnl_cb_doit_reply_with_nlmsg_err(struct sk_buff *sender_skb, struct genl_inf
     return -EINVAL;
 }
 
-int	gnl_cb_dumpit_before_generic(struct netlink_callback *cb) {
+/**
+ * Called before a dump with `gnl_cb_echo_dumpit()` starts.
+ * See where this is assigned in `struct genl_ops gnl_foobar_xmpl_ops[]` as
+ * `.start` callback for more comments.
+ *
+ * @return success (0) or error.
+ */
+int	gnl_cb_echo_dumpit_before(struct netlink_callback *cb) {
     int ret;
     static int unsigned const dump_runs = 3;
     pr_info("%s: dump started. acquire lock. initialize dump runs_to_go (number of receives userland can make) to %d runs\n", __func__, dump_runs);
@@ -463,13 +479,24 @@ int	gnl_cb_dumpit_before_generic(struct netlink_callback *cb) {
 
 }
 
-// Documentation is on the implementation of this function.
-int	gnl_cb_dumpit_after_generic(struct netlink_callback *cb) {
+/**
+ * Called before a dump with `gnl_cb_echo_dumpit()` starts.
+ * See where this is assigned in `struct genl_ops gnl_foobar_xmpl_ops[]` as
+ * `.start` callback for more comments.
+ *
+ * @return success (0) or error.
+ */
+int	gnl_cb_echo_dumpit_before_after(struct netlink_callback *cb) {
     pr_info("%s: dump done. release lock\n", __func__);
     mutex_unlock(&dumpit_cb_progress_data.mtx);
     return 0;
 }
 
+/**
+ * Module/driver initializer. Called on module load/insertion.
+ *
+ * @return success (0) or error code.
+ */
 static int __init gnl_foobar_xmpl_module_init(void) {
     int rc;
     pr_info("Generic Netlink Example Module inserted.\n");
@@ -489,6 +516,11 @@ static int __init gnl_foobar_xmpl_module_init(void) {
     return 0;
 }
 
+/**
+ * Module/driver uninitializer. Called on module unload/removal.
+ *
+ * @return success (0) or error code.
+ */
 static void __exit gnl_foobar_xmpl_module_exit(void) {
     int ret;
     pr_info("Generic Netlink Example Module unloaded.\n");

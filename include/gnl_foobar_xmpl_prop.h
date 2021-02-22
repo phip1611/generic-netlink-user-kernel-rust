@@ -79,7 +79,9 @@ enum GNL_FOOBAR_XMPL_COMMAND {
      * be present in the Generic Netlink request message. The kernel reads the message from the packet and
      * creates a new Generic Netlink response message with an corresponding attribute/payload.
      *
-     * This command/signaling mechanism is independent of the Netlink flag `NLM_F_ECHO (0x08)`.
+     * This command/signaling mechanism is independent of the Netlink flag `NLM_F_ECHO (0x08)`. We use it as
+     * "echo specific data" instead of return a 1:1 copy of the package, which you could do with
+     * `NLM_F_ECHO (0x08)` for example.
      */
     GNL_FOOBAR_XMPL_C_ECHO_MSG,
 

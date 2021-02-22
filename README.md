@@ -22,7 +22,7 @@ The (standalone, independent) userland components are:
 3) a pure C program using raw sockets and no library for abstraction _(originally not my work; see below - but I 
    adjusted some parts)_
 
-*The pure C program (3) code is inspired, or in fact a copy, of the code on [electronicsfaq.com](http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html)
+*The pure C program (3) code is inspired of the code on [electronicsfaq.com](http://www.electronicsfaq.com/2014/02/generic-netlink-sockets-example-code.html)
 by (I don't know the author but from the comments I guess) **Anurag Chugh** 
 ([Blogger](https://www.blogger.com/profile/15390575283968794206), [Website](http://www.lithiumhead.com/)).*
 

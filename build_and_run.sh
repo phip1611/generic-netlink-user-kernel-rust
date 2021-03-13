@@ -1,3 +1,5 @@
+#!/bin/sh
+
 cd kernel-mod
 sh build_and_insert_km.sh
 cd ..

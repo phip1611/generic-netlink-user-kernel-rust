@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # clear kernel log
 sudo rmmod gnl_foobar_xmpl
 sudo dmesg -c > /dev/null

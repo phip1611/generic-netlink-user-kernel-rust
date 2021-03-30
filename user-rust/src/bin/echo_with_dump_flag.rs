@@ -41,7 +41,6 @@ use neli::{
     nl::{NlPayload, Nlmsghdr},
     socket::NlSocketHandle,
     types::{Buffer, GenlBuffer},
-    utils::U32Bitmask,
 };
 use std::process;
 use user_rust::{FAMILY_NAME, NlFoobarXmplAttribute, NlFoobarXmplCommand};
@@ -57,7 +56,7 @@ fn main() {
         NlFamily::Generic,
         // 0 is pid of kernel -> socket is connected to kernel
         Some(0),
-        U32Bitmask::empty(),
+        &[],
     ).unwrap();
 
     let family_id;
@@ -98,6 +97,7 @@ fn main() {
 
         let done_msg: Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>> = sock.recv().expect("Should receive message").unwrap();
         assert_eq!(u16::from(Nlmsg::Done), done_msg.nl_type, "Must receive NLMSG_DONE response" /* 3 is NLMSG_DONE */);
+        println!("Received NLMSG_DONE");
     }
 
 }

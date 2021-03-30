@@ -31,11 +31,10 @@ use neli::{
         nl::{NlmF, NlmFFlags},
         socket::NlFamily,
     },
-    genl::{Genlmsghdr},
+    genl::{Genlmsghdr, Nlattr},
     nl::{NlPayload, Nlmsghdr},
     socket::NlSocketHandle,
     types::{Buffer, GenlBuffer},
-    utils::U32Bitmask,
 };
 use std::process;
 use user_rust::{NlFoobarXmplAttribute, NlFoobarXmplCommand, FAMILY_NAME};
@@ -51,7 +50,7 @@ fn main() {
         NlFamily::Generic,
         // 0 is pid of kernel -> socket is connected to kernel
         Some(0),
-        U32Bitmask::empty(),
+        &[],
     )
     .unwrap();
 
@@ -70,11 +69,19 @@ fn main() {
         }
     }
 
-    let gnmsghdr = Genlmsghdr::new(
-        NlFoobarXmplCommand::ReplyWithNlmsgErr,
-        1,
-        GenlBuffer::<NlFoobarXmplAttribute, Buffer>::new(),
+    // some attribute
+    let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
+    attrs.push(
+        Nlattr::new(
+            None,
+            false,
+            false,
+            NlFoobarXmplAttribute::Msg,
+            "We expect this message to fail",
+        )
+        .unwrap(),
     );
+    let gnmsghdr = Genlmsghdr::new(NlFoobarXmplCommand::ReplyWithNlmsgErr, 1, attrs);
     let nlmsghdr = Nlmsghdr::new(
         None,
         family_id,
@@ -86,10 +93,30 @@ fn main() {
 
     sock.send(nlmsghdr).expect("Send must work");
 
-    // TODO this fails until https://github.com/jbaublitz/neli/issues/116 gets resolved!
     let res: Result<
         Option<Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>>>,
         NlError,
     > = sock.recv();
-    println!("{:#?}", res);
+    let received_err = res.unwrap_err();
+    let received_err = match received_err {
+        NlError::Nlmsgerr(err) => err,
+        _ => panic!("We expected an error here!"),
+    };
+    println!(
+        "Inside the kernel this error code occurred: {}",
+        received_err.error
+    );
+    let nlmsg_that_caused_error = received_err
+        .nlmsg
+        .get_payload_as::<Genlmsghdr<NlFoobarXmplCommand, NlFoobarXmplAttribute>>();
+    let nlmsg_that_caused_error = nlmsg_that_caused_error.expect("Must contain original payload");
+    let attr_handle = nlmsg_that_caused_error.get_attr_handle();
+    println!(
+        "ECHO-attribute was: {}",
+        attr_handle
+            .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
+            .expect("This attribute was sent and must be in the response")
+    );
+
+    println!("Everything okay; successfully received error")
 }

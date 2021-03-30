@@ -127,3 +127,4 @@ If so, let me know on Twitter ([@phip1611](https://twitter.com/phip1611)).
 
 ## Additional resources
 - [Generic Netlink HOW-TO based on Jamal's original doc](https://lwn.net/Articles/208755/)
+- [Generic Netlink HOW-TO on wiki.linuxfoundation.org](https://wiki.linuxfoundation.org/networking/generic_netlink_howto)

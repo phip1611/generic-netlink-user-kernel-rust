@@ -55,7 +55,7 @@ fn main() {
         Ok(id) => family_id = id,
         Err(e) => {
             eprintln!(
-                "The Netlink family '{}' can't be found. Is the kernel module loaded yet? neli-error='{}'",
+                "The Netlink family '{}' can't be found. Is the kernel module loaded yet? neli-error='{:#?}'",
                 FAMILY_NAME, e
             );
             // exit without error in order for Continuous Integration and automatic testing not to fail
@@ -71,7 +71,6 @@ fn main() {
     let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
         Nlattr::new(
-            None,
             false,
             false,
             // the type of the attribute. This is an u16 and corresponds
@@ -131,7 +130,7 @@ fn main() {
 
     let attr_handle = res.get_payload().unwrap().get_attr_handle();
     let received = attr_handle
-        .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
+        .get_attr_payload_as_with_len::<String>(NlFoobarXmplAttribute::Msg)
         .unwrap();
     println!("[User-Rust]: Received from kernel: '{}'", received);
 }

@@ -90,7 +90,7 @@ fn main() {
 
             let attr_handle = res.get_payload().unwrap().get_attr_handle();
             let received = attr_handle
-                .get_attr_payload_as::<String>(NlFoobarXmplAttribute::Msg)
+                .get_attr_payload_as_with_len::<String>(NlFoobarXmplAttribute::Msg)
                 .unwrap();
             println!("[User-Rust]: Received from kernel from .dumpit callback: [seq={}] '{}'", res.nl_seq, received);
         }
@@ -106,7 +106,6 @@ fn build_msg(family_id: u16) -> Nlmsghdr<u16, Genlmsghdr<NlFoobarXmplCommand, Nl
     let mut attrs: GenlBuffer<NlFoobarXmplAttribute, Buffer> = GenlBuffer::new();
     attrs.push(
         Nlattr::new(
-            None,
             false,
             false,
             NlFoobarXmplAttribute::Msg,

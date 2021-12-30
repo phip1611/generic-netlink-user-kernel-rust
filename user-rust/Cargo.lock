@@ -38,7 +38,8 @@ dependencies = [
 [[package]]
 name = "neli"
 version = "0.6.0"
-source = "git+https://github.com/jbaublitz/neli.git#f539dc25da5f01340125a5b76685d38a020690a6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd719242deec38a64744240cedc0872720a938e91a91dc81335aa392ddd06c71"
 dependencies = [
  "byteorder",
  "libc",
@@ -49,7 +50,8 @@ dependencies = [
 [[package]]
 name = "neli-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/jbaublitz/neli.git#f539dc25da5f01340125a5b76685d38a020690a6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e95edae75d08ea3bedeab6584c8efcde3ed21a6b5dd24dced0814efacefcde11"
 dependencies = [
  "either",
  "proc-macro2",
